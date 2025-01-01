@@ -12,8 +12,8 @@ int openSerialPort(const char* portname)
 {
     int fd = open(portname, O_RDWR | O_NOCTTY | O_SYNC);
     if (fd < 0) {
-        cerr << "Error opening " << portname << ": "
-             << strerror(errno) << endl;
+        std::cerr << "Error opening " << portname << ": "
+                  << std::strerror(errno) << std::endl;
         return -1;
     }
     return fd;
@@ -24,8 +24,8 @@ bool configureSerialPort(int fd, int speed)
 {
     struct termios tty;
     if (tcgetattr(fd, &tty) != 0) {
-        cerr << "Error from tcgetattr: " << strerror(errno)
-             << endl;
+        std::cerr << "Error from tcgetattr: " << std::strerror(errno)
+                  << std::endl;
         return false;
     }
 
@@ -51,8 +51,8 @@ bool configureSerialPort(int fd, int speed)
     tty.c_cflag &= ~CRTSCTS;
 
     if (tcsetattr(fd, TCSANOW, &tty) != 0) {
-        cerr << "Error from tcsetattr: " << strerror(errno)
-             << endl;
+        std::cerr << "Error from tcsetattr: " << std::strerror(errno)
+                  << std::endl;
         return false;
     }
     return true;
