@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <iostream>
 #include <exception>
+#include <string>
 
 class Serial {
 
@@ -33,6 +34,18 @@ public:
     bool configure_serial_port(int speed);
 
     /**
+     * Reads the device information from the serial port.
+     * @return Device information as a string.
+     */
+    std::string read_device_info();
+
+    /**
+     * Closes the serial port.
+     */
+    void close_serial_port();
+
+private:
+/**
      * Reads data from the serial port.
      * @param buffer Buffer to store the read data.
      * @param size Number of bytes to read.
@@ -49,7 +62,9 @@ public:
     int write_to_serial_port(const char* buffer, size_t size);
 
     /**
-     * Closes the serial port.
+     * Reads data from the serial port.
+     * @param cmd Command to send to the serial port
      */
-    void close_serial_port();
+    void send_command(const char* cmd);
+
 };

@@ -73,6 +73,43 @@ int Serial::write_to_serial_port(const char* buffer, size_t size) {
 }
 
 /**
+ * Reads data from the serial port.
+ * @param cmd Command to send to the serial port
+ */
+void Serial::send_command(const char* cmd) {
+    // write to port
+    if (this->write_to_serial_port(cmd, strlen(cmd)) < 0) {
+        std::cerr << "Error writing to serial port: " << std::strerror(errno) << std::endl;
+    }
+
+    // read from port
+    char buffer[16];
+    int n = this->read_from_serial_port(buffer, 8);
+    if (n < 0) {
+        throw std::runtime_error(std::string("Error reading from serial port: ") + 
+                                 std::string(std::strerror(errno)));
+    } else {
+        if(std::string(buffer, 8) != std::string(cmd,8)) {
+            throw std::runtime_error("Error: Command not received correctly");
+        }
+    }
+}
+
+std::string Serial::read_device_info() {
+    // send command
+    this->send_command("READINFO");
+
+    char buffer[24];
+    int n = this->read_from_serial_port(buffer, 16);
+    if (n < 0) {
+        throw std::runtime_error(std::string("Error reading from serial port: ") + 
+                                 std::string(std::strerror(errno)));
+    }
+
+    return std::string(buffer, n);
+}
+
+/**
  * Closes the serial port.
  */
 void Serial::close_serial_port() { 
