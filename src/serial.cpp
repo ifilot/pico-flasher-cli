@@ -90,7 +90,7 @@ void Serial::send_command(const char* cmd) {
                                  std::string(std::strerror(errno)));
     } else {
         if(std::string(buffer, 8) != std::string(cmd,8)) {
-            throw std::runtime_error("Error: Command not received correctly");
+            throw std::runtime_error("Error: Command not received correctly: " + std::string(buffer, 8));
         }
     }
 }
@@ -129,8 +129,60 @@ uint16_t Serial::get_device_id() {
 /**
  * Erases the chip.
  */
-void Serial::erase_chip() {
+uint16_t Serial::erase_chip() {
     this->send_command("ERASEALL");
+    uint16_t val;
+    int n = this->read_from_serial_port((char*)&val, 2);
+    if (n < 0) {
+        throw std::runtime_error(std::string("Error reading from serial port: ") + 
+                                 std::string(std::strerror(errno)));
+    }
+
+    // swap the two bytes
+    return (val >> 8) | (val << 8);
+}
+
+/**
+ * Write sector on flash chip.
+ * @param sector which sector to write to
+ * @param data data to write to sector
+ * @return Number of bytes written, or -1 on error.
+ */
+uint16_t Serial::write_sector(uint16_t sector, const std::vector<uint8_t>& data) {
+    if(data.size() != (1024 * 4)) {
+        throw std::runtime_error("Error: Data size must be 4KB");
+    }
+    
+    char cmd[8];
+    sprintf(cmd, "WRSECT%02X", sector);
+    this->send_command(cmd);
+    this->write_to_serial_port((char*)data.data(), data.size());
+    
+    uint16_t val;
+    this->read_from_serial_port((char*)&val, 2);
+
+    return val;
+}
+
+/**
+ * Reads data from sector on flash chip.
+ * @param sector which sector to read from
+ * @param data data to read from sector
+ */
+void Serial::read_bank(uint16_t bank, std::vector<uint8_t>& chunk) {
+    chunk.resize(1024 * 16); // ensure enough space
+    char cmd[8];
+    sprintf(cmd, "RDBANK%02X", bank);
+    this->send_command(cmd);
+    unsigned int bytesread = 0;
+    while(bytesread < 1024 * 16) {
+        int n = this->read_from_serial_port((char*)chunk.data() + bytesread, 256);
+        if(n < 0) {
+            throw std::runtime_error(std::string("Error reading from serial port: ") + 
+                                     std::string(std::strerror(errno)));
+        }
+        bytesread += n;
+    }
 }
 
 /**

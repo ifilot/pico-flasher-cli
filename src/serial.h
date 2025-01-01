@@ -9,6 +9,7 @@
 #include <exception>
 #include <string>
 #include <stdint.h>
+#include <vector>
 
 class Serial {
 
@@ -47,9 +48,24 @@ public:
     uint16_t get_device_id();
 
     /**
+     * Writes data to sector on flash chip.
+     * @param sector which sector to write to
+     * @param data data to write to sector
+     * @return Number of bytes written, or -1 on error.
+     */
+    uint16_t write_sector(uint16_t sector, const std::vector<uint8_t>& data);
+
+    /**
+     * Reads data from sector on flash chip.
+     * @param sector which sector to read from
+     * @param data data to read from sector
+     */
+    void read_bank(uint16_t bank, std::vector<uint8_t>& data);
+
+    /**
      * Erases the chip.
      */
-    void erase_chip();
+    uint16_t erase_chip();
 
     /**
      * Closes the serial port.
