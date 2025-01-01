@@ -44,9 +44,9 @@ int main(int argc, char* argv[]) {
         std::cout << "Interfacing with: " << ser.read_device_info() << std::endl;
         std::cout << "Device ID: 0x" << std::hex << std::uppercase << ser.get_device_id() << std::endl;
 
-        // std::cout << "Clearing chip";
-        // unsigned int nriter = ser.erase_chip();
-        // std::cout << " - Done (" << nriter << " polls)" << std::endl;
+        std::cout << "Clearing chip";
+        unsigned int nriter = ser.erase_chip();
+        std::cout << " - Done (" << nriter << " polls)" << std::endl;
 
         // read data from file
         std::vector<uint8_t> data;
@@ -87,6 +87,8 @@ int main(int argc, char* argv[]) {
             }
         }
 
+        std::cout << "Verifying data:" << std::endl;
+
         // verify integrity
         chunk.resize(1024 * 16);
         unsigned int nrbanks = nrsectors / 4;
@@ -94,7 +96,7 @@ int main(int argc, char* argv[]) {
             std::vector<uint8_t> read_chunk(1024 * 16);
             ser.read_bank(i, read_chunk);
 
-            std::cout << std::setw(2) << std::setfill('0') << (i+1) << " [";
+            std::cout << std::dec << std::setw(2) << std::setfill('0') << (i+1) << " [";
 
             if (std::equal(data.begin() + (i * 1024 * 16), data.begin() + ((i + 1) * 1024 * 16), read_chunk.begin())) {
                 std::cout << TEXTGREEN << "PASS";
