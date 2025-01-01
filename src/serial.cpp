@@ -110,6 +110,30 @@ std::string Serial::read_device_info() {
 }
 
 /**
+ * Reads the device ID from the serial port.
+ * @return Device ID as a 16-bit unsigned integer.
+ */
+uint16_t Serial::get_device_id() {
+    this->send_command("DEVIDSST");
+    uint16_t val;
+    int n = this->read_from_serial_port((char*)&val, 2);
+    if (n < 0) {
+        throw std::runtime_error(std::string("Error reading from serial port: ") + 
+                                 std::string(std::strerror(errno)));
+    }
+
+    // swap the two bytes
+    return (val >> 8) | (val << 8);
+}
+
+/**
+ * Erases the chip.
+ */
+void Serial::erase_chip() {
+    this->send_command("ERASEALL");
+}
+
+/**
  * Closes the serial port.
  */
 void Serial::close_serial_port() { 

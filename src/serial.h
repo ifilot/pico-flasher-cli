@@ -8,6 +8,7 @@
 #include <iostream>
 #include <exception>
 #include <string>
+#include <stdint.h>
 
 class Serial {
 
@@ -38,6 +39,17 @@ public:
      * @return Device information as a string.
      */
     std::string read_device_info();
+
+    /**
+     * Reads the device ID from the serial port.
+     * @return Device ID as a 16-bit unsigned integer.
+     */
+    uint16_t get_device_id();
+
+    /**
+     * Erases the chip.
+     */
+    void erase_chip();
 
     /**
      * Closes the serial port.

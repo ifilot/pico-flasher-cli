@@ -15,8 +15,8 @@ int main() {
         return 1;
     }
 
-    std::string resp = ser.read_device_info();
-    std::cout << resp << std::endl;
+    std::cout << "Interfacing with: " << ser.read_device_info() << std::endl;
+    std::cout << "Device ID: 0x" << std::hex << std::uppercase << ser.get_device_id() << std::endl;
 
     ser.close_serial_port();
     return 0;
