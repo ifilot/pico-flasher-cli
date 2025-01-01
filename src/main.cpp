@@ -6,6 +6,7 @@
 
 #define TEXTGREEN "\033[1;92m"
 #define TEXTWHITE "\033[0m"
+#define TEXTRED "\033[1;91m"
 
 int main(int argc, char* argv[]) {
     try {
@@ -35,7 +36,7 @@ int main(int argc, char* argv[]) {
         ser.open_serial_port(port_name);
 
         // configure port
-        if (!ser.configure_serial_port(B115200)) {
+        if (!ser.configure_serial_port(B19200)) {
             ser.close_serial_port();
             return 1;
         }
@@ -61,7 +62,7 @@ int main(int argc, char* argv[]) {
             // Read the file content into the vector
             if (infile.read(reinterpret_cast<char*>(data.data()), size)) {
                 std::cout << "Reading " << arg_input_filename.getValue() << " (" 
-                          << std::dec << size << " bytes)" << std::endl;
+                          << std::dec << data.size() << " bytes)" << std::endl;
             } else {
                 throw std::runtime_error("Error reading file.");
             }
@@ -72,34 +73,48 @@ int main(int argc, char* argv[]) {
         unsigned int nrsectors = std::min((size_t)128, data.size() / 4096);
         std::cout << "Flashing " << nrsectors << " sectors, please wait..." << std::endl;
         auto chunk = std::vector<uint8_t>(1024 * 4);
-        // for (unsigned int i = 0; i < nrsectors; i++) {
-        //     std::copy(data.begin() + (i * 1024 * 4), data.begin() + ((i + 1) * 1024 * 4), chunk.begin());
+        for (unsigned int i = 0; i < nrsectors; i++) {
+            std::copy(data.begin() + (i * 1024 * 4), data.begin() + ((i + 1) * 1024 * 4), chunk.begin());
 
-        //     std::cout << std::dec << std::setw(3) << std::setfill('0') << (i+1) << " [" << TEXTGREEN;
-        //     std::cout << std::hex << std::setw(4) << std::setfill('0') << ser.write_sector(i, chunk);
-        //     std::cout << "] " << TEXTWHITE << std::flush;
+            std::cout << std::dec << std::setw(3) << std::setfill('0') << (i+1) << " [" << TEXTGREEN;
+            std::cout << std::hex << std::setw(4) << std::setfill('0') << ser.write_sector(i, chunk);
+            std::cout << "] " << TEXTWHITE << std::flush;
 
-        //     if((i+1) % 8 == 0) {
-        //         std::cout << std::endl;
-        //     } else if(i == nrsectors - 1) {
-        //         std::cout << std::endl;
-        //     }
-        // }
+            if((i+1) % 8 == 0) {
+                std::cout << std::endl;
+            } else if(i == nrsectors - 1) {
+                std::cout << std::endl;
+            }
+        }
 
         // verify integrity
         chunk.resize(1024 * 16);
         unsigned int nrbanks = nrsectors / 4;
         for(unsigned int i=0; i<nrbanks; i++) {
-            ser.read_bank(i, chunk);
+            std::vector<uint8_t> read_chunk(1024 * 16);
+            ser.read_bank(i, read_chunk);
 
-            if(std::equal(data.begin() + (i * 1024 * 16), data.begin() + ((i + 1) * 1024 * 16), chunk.begin())) {
-                std::cout << "Bank " << i << " [" << TEXTGREEN << "OK" << TEXTWHITE << "]" << std::endl;
+            std::cout << std::setw(2) << std::setfill('0') << (i+1) << " [";
+
+            if (std::equal(data.begin() + (i * 1024 * 16), data.begin() + ((i + 1) * 1024 * 16), read_chunk.begin())) {
+                std::cout << TEXTGREEN << "PASS";
             } else {
-                std::cout << "Bank " << i << " [" << TEXTGREEN << "FAIL" << TEXTWHITE << "]" << std::endl;
+                std::cout << TEXTRED << "FAIL";
+            }
+
+            std::cout << TEXTWHITE << "] " << std::flush;
+
+            if((i+1) % 8 == 0) {
+                std::cout << std::endl;
+            } else if(i == nrbanks - 1) {
+                std::cout << std::endl;
             }
         }
 
         ser.close_serial_port();
+
+        std::cout << "All done!" << std::endl;
+
         return 0;
     } catch (TCLAP::ArgException &e) {
         std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;

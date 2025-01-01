@@ -35,13 +35,14 @@ bool Serial::configure_serial_port(int speed) {
 
     tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8; // 8-bit characters
     tty.c_iflag &= ~IGNBRK;                     // disable break processing
+    tty.c_iflag &= ~ICRNL;                      // disable CR-to-NL translation
     tty.c_lflag = 0;                            // no signaling chars, no echo, no canonical processing
     tty.c_oflag = 0;                            // no remapping, no delays
-    tty.c_cc[VMIN] = 0;                         // read doesn't block
+    tty.c_cc[VMIN] = 0;                         // read
     tty.c_cc[VTIME] = 5;                        // 0.5 seconds read timeout
-    tty.c_iflag &= ~(IXON | IXOFF | IXANY);     // shut off xon/xoff ctrl
+    tty.c_iflag &= ~(IXON | IXOFF | IXANY);     // no xon/xoff ctrl
     tty.c_cflag |= (CLOCAL | CREAD);            // ignore modem controls, enable reading
-    tty.c_cflag &= ~(PARENB | PARODD);          // shut off parity
+    tty.c_cflag &= ~(PARENB | PARODD);          // no parity
     tty.c_cflag &= ~CSTOPB;                     // one stop bit
     tty.c_cflag &= ~CRTSCTS;                    // no hardware flow control 
 
@@ -153,7 +154,7 @@ uint16_t Serial::write_sector(uint16_t sector, const std::vector<uint8_t>& data)
         throw std::runtime_error("Error: Data size must be 4KB");
     }
     
-    char cmd[8];
+    char cmd[9];
     sprintf(cmd, "WRSECT%02X", sector);
     this->send_command(cmd);
     this->write_to_serial_port((char*)data.data(), data.size());
@@ -170,13 +171,15 @@ uint16_t Serial::write_sector(uint16_t sector, const std::vector<uint8_t>& data)
  * @param data data to read from sector
  */
 void Serial::read_bank(uint16_t bank, std::vector<uint8_t>& chunk) {
-    chunk.resize(1024 * 16); // ensure enough space
-    char cmd[8];
+    if(chunk.size() != (1024 * 16)) {
+        throw std::runtime_error("Error: Data size must be 16KB");
+    }
+    char cmd[9];
     sprintf(cmd, "RDBANK%02X", bank);
     this->send_command(cmd);
     unsigned int bytesread = 0;
     while(bytesread < 1024 * 16) {
-        int n = this->read_from_serial_port((char*)chunk.data() + bytesread, 256);
+        int n = this->read_from_serial_port((char*)chunk.data() + bytesread, 1024*16 - bytesread);
         if(n < 0) {
             throw std::runtime_error(std::string("Error reading from serial port: ") + 
                                      std::string(std::strerror(errno)));
