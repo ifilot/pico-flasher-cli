@@ -12,7 +12,7 @@ Ensure you have the required dependencies on your system
 sudo apt update && sudo apt install -y build-essential cmake libtclap-dev pkg-config
 ```
 
-### Copmilation
+### Compilation
 
 ```bash
 mkdir build
@@ -22,3 +22,7 @@ make -j
 ```
 
 ## Usage
+
+```bash
+./picoflash -i <PATH-TO-SOURCE>
+```
