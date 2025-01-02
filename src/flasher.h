@@ -31,6 +31,7 @@
 #define TEXTGREEN "\033[1;92m"
 #define TEXTWHITE "\033[0m"
 #define TEXTRED "\033[1;91m"
+#define TEXTBLUE "\033[1;94m"
 
 class Flasher {
 private:
@@ -78,4 +79,10 @@ public:
     void read_file(const std::string& filename, std::vector<uint8_t>& data);
 
 private:
+    /**
+     * Calculates the CRC16 checksum of the given data.
+     * @param data Data to calculate the checksum for.
+     * @return CRC16 checksum of the data.
+     */
+    uint16_t crc16_xmodem(const std::vector<uint8_t>& data);
 };
