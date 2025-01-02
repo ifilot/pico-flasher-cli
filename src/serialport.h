@@ -21,6 +21,21 @@
 #pragma once
 
 #include <iostream>
+#include <vector>
+#include <string>
+#include <fstream>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <regex>
+#include <unistd.h>
+#include <cctype>
+
+// Structure to store serial port information
+struct serial_port_info {
+    std::string device_path;
+    std::string vendor_id;
+    std::string product_id;
+};
 
 class SerialPort {
 
