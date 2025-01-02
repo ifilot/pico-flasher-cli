@@ -23,6 +23,7 @@
 
 #include "config.h"
 #include "flasher.h"
+#include "serialport.h"
 
 int main(int argc, char* argv[]) {
     try {
@@ -67,8 +68,17 @@ int main(int argc, char* argv[]) {
             std::cerr << "Select one of the following modes: -e, -w, -r, -v" << std::endl;
             return 1;
         }
+        
+        SerialPort sp;
+        auto ports = sp.list_serial_ports_with_ids();
+        if(ports.size() != 1) {
+            std::cerr << "Error: No device found." << std::endl;
+            return 1;
+        } else {
+            std::cout << "Autoselecting: " << ports[0].device_path << std::endl;
+        }
 
-        Flasher flasher;
+        Flasher flasher(ports[0].device_path);
         flasher.read_chip_id();
 
         if(arg_erase.getValue()) {

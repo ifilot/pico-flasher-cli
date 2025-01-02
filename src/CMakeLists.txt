@@ -27,4 +27,4 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 
 # Add the executable
-add_executable(picoflash main.cpp serial.cpp flasher.cpp)
+add_executable(picoflash main.cpp serial.cpp flasher.cpp serialport.cpp)

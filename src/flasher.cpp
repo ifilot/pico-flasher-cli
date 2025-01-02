@@ -23,10 +23,9 @@
 /**
  * Constructor for the Flasher class.
  */
-Flasher::Flasher() {
+Flasher::Flasher(const std::string& path) {
     this->serial = std::make_unique<Serial>();
-    const char* port_name = "/dev/ttyACM0";
-    this->serial->open_serial_port(port_name);
+    this->serial->open_serial_port(path.c_str());
 
     // configure port
     if (!this->serial->configure_serial_port(B19200)) {
@@ -40,7 +39,25 @@ Flasher::Flasher() {
  */
 void Flasher::read_chip_id() {
     std::cout << "Interfacing with: " << this->serial->read_device_info() << std::endl;
-    std::cout << "Device ID: 0x" << std::hex << std::uppercase << this->serial->get_device_id() << std::endl;
+    uint16_t devid = this->serial->get_device_id();
+
+    std::string devname;
+    switch(devid) {
+        case 0xBFB7:
+            devname = "SST39SF040";
+        break;
+        case 0xBFB6:
+            devname = "SST39SF020";
+        break;
+        case 0xBFB5:
+            devname = "SST39SF010";
+        break;
+        default:
+            throw std::runtime_error("Unknown device ID.");
+        break;
+    }
+    std::cout << "Device ID: " << TEXTGREEN << "0x" << std::hex << std::uppercase
+              << devid << TEXTWHITE << "(" << devname << ")" << std::endl;
 }
 
 /**
@@ -71,9 +88,20 @@ void Flasher::write_chip(const std::vector<uint8_t>& data) {
     for (unsigned int i = 0; i < nrsectors; i++) {
         std::copy(data.begin() + (i * 1024 * 4), data.begin() + ((i + 1) * 1024 * 4), chunk.begin());
 
-        std::cout << std::dec << std::setw(3) << std::setfill('0') << (i+1) << " [" << TEXTGREEN;
-        std::cout << std::hex << std::setw(4) << std::setfill('0') << this->serial->write_sector(i, chunk);
-        std::cout << "] " << TEXTWHITE << std::flush;
+        // calculate checksum
+        uint16_t crc16 = this->crc16_xmodem(chunk);
+
+        // perform transfer
+        uint16_t checksum = this->serial->write_sector(i, chunk);
+
+        std::cout << std::dec << std::setw(3) << std::setfill('0') << (i+1) << " [";
+        if(checksum  == crc16) {
+            std::cout << TEXTGREEN;
+        } else {
+            std::cout << TEXTRED;
+        }
+        std::cout << std::hex << std::setw(4) << std::setfill('0') << checksum << TEXTWHITE;
+        std::cout << "] " << std::flush;
 
         if((i+1) % 8 == 0) {
             std::cout << std::endl;
@@ -132,7 +160,7 @@ void Flasher::read_file(const std::string& filename, std::vector<uint8_t>& data)
 
         // Read the file content into the vector
         if (infile.read(reinterpret_cast<char*>(data.data()), size)) {
-            std::cout << "Reading " << filename << " (" 
+            std::cout << "Reading " << TEXTBLUE << filename << TEXTWHITE << " (" 
                         << std::dec << data.size() << " bytes)" << std::endl;
         } else {
             throw std::runtime_error("Error reading file.");
@@ -140,4 +168,26 @@ void Flasher::read_file(const std::string& filename, std::vector<uint8_t>& data)
     } else {
         throw std::runtime_error("Error opening file.");
     }
+}
+
+/**
+ * Calculates the CRC16 checksum of the given data.
+ * @param data Data to calculate the checksum for.
+ * @return CRC16 checksum of the data.
+ */
+uint16_t Flasher::crc16_xmodem(const std::vector<uint8_t>& data) {
+    uint32_t crc = 0;
+    static const uint16_t poly = 0x1021;
+
+    for(uint16_t i=0; i<data.size(); i++) {
+      crc = crc ^ (data[i] << 8);
+      for (uint8_t j=0; j<8; j++) {
+        crc = crc << 1;
+        if (crc & 0x10000) {
+            crc = (crc ^ poly) & 0xFFFF;
+        }
+      }
+    }
+
+    return (uint16_t)crc;
 }

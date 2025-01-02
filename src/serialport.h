@@ -20,69 +20,26 @@
 
 #pragma once
 
-#include <memory>
-#include <fstream>
 #include <iostream>
-#include <iomanip>
-#include <exception>
+#include <vector>
+#include <string>
+#include <fstream>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <regex>
+#include <unistd.h>
+#include <cctype>
 
-#include "serial.h"
+// Structure to store serial port information
+struct serial_port_info {
+    std::string device_path;
+    std::string vendor_id;
+    std::string product_id;
+};
 
-#define TEXTGREEN "\033[1;92m"
-#define TEXTWHITE "\033[0m"
-#define TEXTRED "\033[1;91m"
-#define TEXTBLUE "\033[1;94m"
-
-class Flasher {
-private:
-    std::unique_ptr<Serial> serial;
-
+class SerialPort {
 public:
-    /**
-     * Constructor for the Flasher class.
-     */
-    Flasher(const std::string& path);
+    SerialPort();
 
-    /**
-     * Reads the device ID from the serial port.
-     */
-    void read_chip_id();
-
-    /**
-     * Erases the chip.
-     */
-    void erase_chip();
-
-    /**
-     * Reads data from the chip.
-     * @param data Data read from the chip.
-     */
-    void read_chip(std::vector<uint8_t>& data);
-
-    /**
-     * Writes data to the chip.
-     * @param data Data to write to the chip.
-     */
-    void write_chip(const std::vector<uint8_t>& data);
-
-    /**
-     * Verifies the data on the chip.
-     * @param data Data to verify on the chip.
-     */
-    void verify_chip(const std::vector<uint8_t>& data);
-
-    /**
-     * Reads data from a file.
-     * @param filename Name of the file to read.
-     * @param data Data read from the file.
-     */
-    void read_file(const std::string& filename, std::vector<uint8_t>& data);
-
-private:
-    /**
-     * Calculates the CRC16 checksum of the given data.
-     * @param data Data to calculate the checksum for.
-     * @return CRC16 checksum of the data.
-     */
-    uint16_t crc16_xmodem(const std::vector<uint8_t>& data);
+    std::vector<serial_port_info> list_serial_ports_with_ids();
 };
