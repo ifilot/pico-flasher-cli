@@ -1,0 +1,25 @@
+name: build
+
+on:
+  push:
+    branches: [ "master", "develop" ]
+    tags:
+    - 'v*'
+  pull_request:
+    branches: [ "master", "develop" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install dependencies
+      run: apt-get update && apt-get install -y cmake build-essential libtclap-dev git
+    - name: Compile firmware
+      shell: bash
+      run: |
+        mkdir build && cd build
+        cmake ../src
+        make -j

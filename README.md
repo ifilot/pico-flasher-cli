@@ -1,6 +1,6 @@
 # PICO FLASHER
 
-Command-line tool to interface with the [Pico SST39SF0x0 Programmer](https://github.com/ifilot/pico-sst39sf0x0-programmer)
+Command-line tool to interface with the [Pico SST39SF0x0 Programmer](https://github.com/ifilot/pico-sst39sf0x0-programmer).
 
 ## Compilation instructions
 
