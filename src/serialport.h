@@ -38,5 +38,8 @@ struct serial_port_info {
 };
 
 class SerialPort {
+public:
+    SerialPort();
 
+    std::vector<serial_port_info> list_serial_ports_with_ids();
 };

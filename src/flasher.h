@@ -40,7 +40,7 @@ public:
     /**
      * Constructor for the Flasher class.
      */
-    Flasher();
+    Flasher(const std::string& path);
 
     /**
      * Reads the device ID from the serial port.

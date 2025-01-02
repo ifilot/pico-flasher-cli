@@ -23,10 +23,9 @@
 /**
  * Constructor for the Flasher class.
  */
-Flasher::Flasher() {
+Flasher::Flasher(const std::string& path) {
     this->serial = std::make_unique<Serial>();
-    const char* port_name = "/dev/ttyACM0";
-    this->serial->open_serial_port(port_name);
+    this->serial->open_serial_port(path.c_str());
 
     // configure port
     if (!this->serial->configure_serial_port(B19200)) {

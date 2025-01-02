@@ -18,6 +18,8 @@
  *                                                                        *
  **************************************************************************/
 
+#include "serialport.h"
+
 SerialPort::SerialPort() {}
 
 // Function to list all serial ports and their IDs
@@ -77,5 +79,4 @@ std::vector<serial_port_info> SerialPort::list_serial_ports_with_ids() {
 
     closedir(dir);
     return serial_ports;
-}
 }
