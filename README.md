@@ -23,6 +23,33 @@ make -j
 
 ## Usage
 
+Pico Flasher has 4 operational modes:
+
+* Read: Read data from chip and write to binary file
+* Write: Write data to chip from binary file
+* Verify: Verify data on chip using binary file
+* Erase: Erase all data on chip (set everything to `0xFFFF`)
+
+### Read
+
 ```bash
-./picoflash -i <PATH-TO-SOURCE>
+./picoflash -o <BINFILE> -r
+```
+
+### Write
+
+```bash
+./picoflash -i <BINFILE> -w
+```
+
+### Verify
+
+```bash
+./picoflash -i <BINFILE> -v
+```
+
+### Erase
+
+```bash
+./picoflash -e
 ```

@@ -1,3 +1,23 @@
+/**************************************************************************
+ *                                                                        *
+ *   Author: Ivo Filot <ivo@ivofilot.nl>                                  *
+ *                                                                        *
+ *   PICOFLASH is free software:                                          *
+ *   you can redistribute it and/or modify it under the terms of the      *
+ *   GNU General Public License as published by the Free Software         *
+ *   Foundation, either version 3 of the License, or (at your option)     *
+ *   any later version.                                                   *
+ *                                                                        *
+ *   PICOFLASH is distributed in the hope that it will be useful,         *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty          *
+ *   of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.              *
+ *   See the GNU General Public License for more details.                 *
+ *                                                                        *
+ *   You should have received a copy of the GNU General Public License    *
+ *   along with this program.  If not, see http://www.gnu.org/licenses/.  *
+ *                                                                        *
+ **************************************************************************/
+
 #include "serial.h"
 
 /**
@@ -12,9 +32,13 @@ Serial::Serial() {
  * @param port_name Name of the serial port.
  */
 void Serial::open_serial_port(const char* port_name) {
-    this->fd = open(port_name, O_RDWR | O_NOCTTY | O_SYNC);
-    if (this->fd < 0) {
-        std::cerr << "Error opening " << port_name << ": " << std::strerror(errno) << std::endl;
+    if(!this->is_open) {
+        this->fd = open(port_name, O_RDWR | O_NOCTTY | O_SYNC);
+        if (this->fd < 0) {
+            std::cerr << "Error opening " << port_name << ": " << std::strerror(errno) << std::endl;
+        }
+    } else {
+        throw std::logic_error("Error: Serial port already open.");
     }
 }
 
@@ -51,49 +75,6 @@ bool Serial::configure_serial_port(int speed) {
         return false;
     }
     return true;
-}
-
-/**
- * Reads data from the serial port.
- * @param buffer Buffer to store the read data.
- * @param size Number of bytes to read.
- * @return Number of bytes read, or -1 on error.
- */
-int Serial::read_from_serial_port(char* buffer, size_t size) {
-    return read(this->fd, buffer, size);
-}
-
-/**
- * Writes data to the serial port.
- * @param buffer Buffer containing the data to write.
- * @param size Number of bytes to write.
- * @return Number of bytes written, or -1 on error.
- */
-int Serial::write_to_serial_port(const char* buffer, size_t size) {
-    return write(this->fd, buffer, size);
-}
-
-/**
- * Reads data from the serial port.
- * @param cmd Command to send to the serial port
- */
-void Serial::send_command(const char* cmd) {
-    // write to port
-    if (this->write_to_serial_port(cmd, strlen(cmd)) < 0) {
-        std::cerr << "Error writing to serial port: " << std::strerror(errno) << std::endl;
-    }
-
-    // read from port
-    char buffer[16];
-    int n = this->read_from_serial_port(buffer, 8);
-    if (n < 0) {
-        throw std::runtime_error(std::string("Error reading from serial port: ") + 
-                                 std::string(std::strerror(errno)));
-    } else {
-        if(std::string(buffer, 8) != std::string(cmd,8)) {
-            throw std::runtime_error("Error: Command not received correctly: " + std::string(buffer, 8));
-        }
-    }
 }
 
 std::string Serial::read_device_info() {
@@ -188,9 +169,70 @@ void Serial::read_bank(uint16_t bank, std::vector<uint8_t>& chunk) {
     }
 }
 
+/*
+* Destructor for the Serial class.
+*/
+Serial::~Serial() {
+    if(this->is_open) {
+        this->close_serial_port();
+    }
+}
+
+/**********************************************************************************
+ * PRIVATE FUNCTIONS
+ **********************************************************************************/
+
+/**
+ * Reads data from the serial port.
+ * @param buffer Buffer to store the read data.
+ * @param size Number of bytes to read.
+ * @return Number of bytes read, or -1 on error.
+ */
+int Serial::read_from_serial_port(char* buffer, size_t size) {
+    return read(this->fd, buffer, size);
+}
+
+/**
+ * Writes data to the serial port.
+ * @param buffer Buffer containing the data to write.
+ * @param size Number of bytes to write.
+ * @return Number of bytes written, or -1 on error.
+ */
+int Serial::write_to_serial_port(const char* buffer, size_t size) {
+    return write(this->fd, buffer, size);
+}
+
+/**
+ * Reads data from the serial port.
+ * @param cmd Command to send to the serial port
+ */
+void Serial::send_command(const char* cmd) {
+    // write to port
+    if (this->write_to_serial_port(cmd, strlen(cmd)) < 0) {
+        std::cerr << "Error writing to serial port: " << std::strerror(errno) << std::endl;
+    }
+
+    // read from port
+    char buffer[16];
+    int n = this->read_from_serial_port(buffer, 8);
+    if (n < 0) {
+        throw std::runtime_error(std::string("Error reading from serial port: ") + 
+                                 std::string(std::strerror(errno)));
+    } else {
+        if(std::string(buffer, 8) != std::string(cmd,8)) {
+            throw std::runtime_error("Error: Command not received correctly: " + std::string(buffer, 8));
+        }
+    }
+}
+
 /**
  * Closes the serial port.
  */
-void Serial::close_serial_port() { 
-    close(this->fd); 
+void Serial::close_serial_port() {
+    if(this->is_open) {
+        close(this->fd);
+        this->fd = -1;
+    } else {
+        throw std::logic_error("Error: Serial port already closed.");
+    }
 }

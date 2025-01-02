@@ -1,12 +1,28 @@
+/**************************************************************************
+ *                                                                        *
+ *   Author: Ivo Filot <ivo@ivofilot.nl>                                  *
+ *                                                                        *
+ *   PICOFLASH is free software:                                          *
+ *   you can redistribute it and/or modify it under the terms of the      *
+ *   GNU General Public License as published by the Free Software         *
+ *   Foundation, either version 3 of the License, or (at your option)     *
+ *   any later version.                                                   *
+ *                                                                        *
+ *   PICOFLASH is distributed in the hope that it will be useful,         *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty          *
+ *   of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.              *
+ *   See the GNU General Public License for more details.                 *
+ *                                                                        *
+ *   You should have received a copy of the GNU General Public License    *
+ *   along with this program.  If not, see http://www.gnu.org/licenses/.  *
+ *                                                                        *
+ **************************************************************************/
+
 #include <iostream>
 #include <tclap/CmdLine.h>
-#include <fstream>
 
-#include "serial.h"
-
-#define TEXTGREEN "\033[1;92m"
-#define TEXTWHITE "\033[0m"
-#define TEXTRED "\033[1;91m"
+#include "config.h"
+#include "flasher.h"
 
 int main(int argc, char* argv[]) {
     try {
@@ -15,105 +31,62 @@ int main(int argc, char* argv[]) {
         // input filename
         TCLAP::ValueArg<std::string> arg_input_filename("i","input","Input file (i.e. .BIN)",false,"DATA.BIN","filename");
         cmd.add(arg_input_filename);
+
+        // output filename
+        TCLAP::ValueArg<std::string> arg_output_filename("o","output","Output file (i.e. .BIN)",false,"DATA.BIN","filename");
+        cmd.add(arg_output_filename);
+
+        // operation modes
+        TCLAP::SwitchArg arg_erase("e","erase","Erase chip",false);
+        TCLAP::SwitchArg arg_write("w","write","Write data to chip",false);
+        TCLAP::SwitchArg arg_read("r","read","Read data from chip",false);
+        TCLAP::SwitchArg arg_verify("v","verify","Verify data on chip",false);
+        cmd.add(arg_erase);
+        cmd.add(arg_write);
+        cmd.add(arg_read);
+        cmd.add(arg_verify);
+
         cmd.parse(argc, argv);
 
-        //**************************************
+        // **************************************
         // Inform user about execution
-        //**************************************
-        // std::cout << "--------------------------------------------------------------" << std::endl;
-        // std::cout << "Executing "<< PROGRAM_NAME << " v." << PROGRAM_VERSION << std::endl;
-        // std::cout << "Author:  Ivo Filot <i.a.w.filot@tue.nl>" << std::endl;
-        // std::cout << "Website: https://den2obj.imc-tue.nl" << std::endl;
-        // std::cout << "Github:  https://github.com/ifilot/den2obj" << std::endl;
-        // std::cout << "--------------------------------------------------------------" << std::endl;
-        // std::cout << "Compilation time: " << __DATE__ << " " << __TIME__ << std::endl;
-        // std::cout << "Git Hash: " << PROGRAM_GIT_HASH << std::endl;
-        // std::cout << "--------------------------------------------------------------" << std::endl;
-        auto ser = Serial();
-
-        // open port
-        const char* port_name = "/dev/ttyACM0";
-        ser.open_serial_port(port_name);
-
-        // configure port
-        if (!ser.configure_serial_port(B19200)) {
-            ser.close_serial_port();
+        // **************************************
+        std::cout << "--------------------------------------------------------------" << std::endl;
+        std::cout << "Executing "<< PROGRAM_NAME << " v." << PROGRAM_VERSION << std::endl;
+        std::cout << "Author:  Ivo Filot <ivo@ivofilot.nl>" << std::endl;
+        std::cout << "Github:  https://github.com/ifilot/pico-flasher-cli" << std::endl;
+        std::cout << "--------------------------------------------------------------" << std::endl;
+        std::cout << "Compilation time: " << __DATE__ << " " << __TIME__ << std::endl;
+        std::cout << "Git Hash: " << PROGRAM_GIT_HASH << std::endl;
+        std::cout << "--------------------------------------------------------------" << std::endl;
+        
+        // get operation mode
+        unsigned int modes = arg_erase.getValue() + arg_write.getValue() + arg_read.getValue() + arg_verify.getValue();
+        if(modes != 1) {
+            std::cerr << "Error: Please select one operation mode." << std::endl;
+            std::cerr << "Select one of the following modes: -e, -w, -r, -v" << std::endl;
             return 1;
         }
 
-        std::cout << "Interfacing with: " << ser.read_device_info() << std::endl;
-        std::cout << "Device ID: 0x" << std::hex << std::uppercase << ser.get_device_id() << std::endl;
+        Flasher flasher;
+        flasher.read_chip_id();
 
-        std::cout << "Clearing chip";
-        unsigned int nriter = ser.erase_chip();
-        std::cout << " - Done (" << nriter << " polls)" << std::endl;
-
-        // read data from file
-        std::vector<uint8_t> data;
-        std::ifstream infile(arg_input_filename.getValue(), std::ios::binary);
-        if (infile) {
-            infile.seekg(0, std::ios::end);
-            std::streamsize size = infile.tellg();
-            infile.seekg(0, std::ios::beg);
-
-            // Resize the vector to fit the file content
-            data.resize(size);
-
-            // Read the file content into the vector
-            if (infile.read(reinterpret_cast<char*>(data.data()), size)) {
-                std::cout << "Reading " << arg_input_filename.getValue() << " (" 
-                          << std::dec << data.size() << " bytes)" << std::endl;
-            } else {
-                throw std::runtime_error("Error reading file.");
-            }
-        } else {
-            throw std::runtime_error("Error opening file.");
+        if(arg_erase.getValue()) {
+            flasher.erase_chip();
+        } else if(arg_write.getValue()) {
+            std::vector<uint8_t> data;
+            flasher.read_file(arg_input_filename.getValue(), data);
+            flasher.erase_chip();
+            flasher.write_chip(data);
+            flasher.verify_chip(data);
+        } else if(arg_read.getValue()) {
+            std::vector<uint8_t> data;
+            flasher.read_chip(data);
+        } else if(arg_verify.getValue()) {
+            std::vector<uint8_t> data;
+            flasher.read_file(arg_input_filename.getValue(), data);
+            flasher.verify_chip(data);
         }
-
-        unsigned int nrsectors = std::min((size_t)128, data.size() / 4096);
-        std::cout << "Flashing " << nrsectors << " sectors, please wait..." << std::endl;
-        auto chunk = std::vector<uint8_t>(1024 * 4);
-        for (unsigned int i = 0; i < nrsectors; i++) {
-            std::copy(data.begin() + (i * 1024 * 4), data.begin() + ((i + 1) * 1024 * 4), chunk.begin());
-
-            std::cout << std::dec << std::setw(3) << std::setfill('0') << (i+1) << " [" << TEXTGREEN;
-            std::cout << std::hex << std::setw(4) << std::setfill('0') << ser.write_sector(i, chunk);
-            std::cout << "] " << TEXTWHITE << std::flush;
-
-            if((i+1) % 8 == 0) {
-                std::cout << std::endl;
-            } else if(i == nrsectors - 1) {
-                std::cout << std::endl;
-            }
-        }
-
-        std::cout << "Verifying data:" << std::endl;
-
-        // verify integrity
-        chunk.resize(1024 * 16);
-        unsigned int nrbanks = nrsectors / 4;
-        for(unsigned int i=0; i<nrbanks; i++) {
-            std::vector<uint8_t> read_chunk(1024 * 16);
-            ser.read_bank(i, read_chunk);
-
-            std::cout << std::dec << std::setw(2) << std::setfill('0') << (i+1) << " [";
-
-            if (std::equal(data.begin() + (i * 1024 * 16), data.begin() + ((i + 1) * 1024 * 16), read_chunk.begin())) {
-                std::cout << TEXTGREEN << "PASS";
-            } else {
-                std::cout << TEXTRED << "FAIL";
-            }
-
-            std::cout << TEXTWHITE << "] " << std::flush;
-
-            if((i+1) % 8 == 0) {
-                std::cout << std::endl;
-            } else if(i == nrbanks - 1) {
-                std::cout << std::endl;
-            }
-        }
-
-        ser.close_serial_port();
 
         std::cout << "All done!" << std::endl;
 
