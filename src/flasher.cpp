@@ -20,6 +20,9 @@
 
 #include "flasher.h"
 
+/**
+ * Constructor for the Flasher class.
+ */
 Flasher::Flasher() {
     this->serial = std::make_unique<Serial>();
     const char* port_name = "/dev/ttyACM0";
@@ -32,21 +35,35 @@ Flasher::Flasher() {
     }
 }
 
+/**
+ * Reads the device ID from the serial port.
+ */
 void Flasher::read_chip_id() {
     std::cout << "Interfacing with: " << this->serial->read_device_info() << std::endl;
     std::cout << "Device ID: 0x" << std::hex << std::uppercase << this->serial->get_device_id() << std::endl;
 }
 
+/**
+ * Erases the chip.
+ */
 void Flasher::erase_chip() {
     std::cout << "Clearing chip";
     unsigned int nriter = this->serial->erase_chip();
     std::cout << " - Done (" << nriter << " polls)" << std::endl;
 }
 
+/**
+ * Reads data from the chip.
+ * @param data Data read from the chip.
+ */
 void Flasher::read_chip(std::vector<uint8_t>& data) {
 
 }
 
+/**
+ * Writes data to the chip.
+ * @param data Data to write to the chip.
+ */
 void Flasher::write_chip(const std::vector<uint8_t>& data) {
     unsigned int nrsectors = std::min((size_t)128, data.size() / 4096);
     std::cout << "Flashing " << nrsectors << " sectors, please wait..." << std::endl;
@@ -66,6 +83,10 @@ void Flasher::write_chip(const std::vector<uint8_t>& data) {
     }
 }
 
+/**
+ * Verifies the data on the chip.
+ * @param data Data to verify on the chip.
+ */
 void Flasher::verify_chip(const std::vector<uint8_t>& data) {
     std::cout << "Verifying data:" << std::endl;
 
@@ -94,6 +115,11 @@ void Flasher::verify_chip(const std::vector<uint8_t>& data) {
     }
 }
 
+/**
+ * Reads data from a file.
+ * @param filename Name of the file to read.
+ * @param data Data read from the file.
+ */
 void Flasher::read_file(const std::string& filename, std::vector<uint8_t>& data) {
     std::ifstream infile(filename, std::ios::binary);
     if (infile) {

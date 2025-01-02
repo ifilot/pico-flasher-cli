@@ -37,18 +37,44 @@ private:
     std::unique_ptr<Serial> serial;
 
 public:
+    /**
+     * Constructor for the Flasher class.
+     */
     Flasher();
 
+    /**
+     * Reads the device ID from the serial port.
+     */
     void read_chip_id();
 
+    /**
+     * Erases the chip.
+     */
     void erase_chip();
 
+    /**
+     * Reads data from the chip.
+     * @param data Data read from the chip.
+     */
     void read_chip(std::vector<uint8_t>& data);
 
+    /**
+     * Writes data to the chip.
+     * @param data Data to write to the chip.
+     */
     void write_chip(const std::vector<uint8_t>& data);
 
+    /**
+     * Verifies the data on the chip.
+     * @param data Data to verify on the chip.
+     */
     void verify_chip(const std::vector<uint8_t>& data);
 
+    /**
+     * Reads data from a file.
+     * @param filename Name of the file to read.
+     * @param data Data read from the file.
+     */
     void read_file(const std::string& filename, std::vector<uint8_t>& data);
 
 private:
