@@ -53,11 +53,11 @@ void Flasher::read_chip_id() {
             devname = "SST39SF010";
         break;
         default:
-            throw std::runtime_error("Unknown device ID.");
+            throw std::runtime_error("Unknown device ID: Cannot recognize SST39SF0x0 chip.");
         break;
     }
     std::cout << "Device ID: " << TEXTGREEN << "0x" << std::hex << std::uppercase
-              << devid << TEXTWHITE << "(" << devname << ")" << std::endl;
+              << devid << TEXTWHITE << " (" << devname << ")" << std::endl;
 }
 
 /**
@@ -74,7 +74,26 @@ void Flasher::erase_chip() {
  * @param data Data read from the chip.
  */
 void Flasher::read_chip(std::vector<uint8_t>& data) {
+    std::cout << "Reading data:" << std::endl;
 
+    // read data
+    auto chunk = std::vector<uint8_t>(1024 * 16);
+    unsigned int nrbanks = data.size() / (1024 * 16);
+    for(unsigned int i=0; i<nrbanks; i++) {
+        std::vector<uint8_t> read_chunk(1024 * 16);
+        this->serial->read_bank(i, read_chunk);
+
+        std::cout << std::dec << std::setw(2) << std::setfill('0') << (i+1) << " [" << TEXTBLUE;
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << "0x" << this->crc16_xmodem(read_chunk) << TEXTWHITE << "] " << std::flush;
+
+        std::cout << TEXTWHITE << "] " << std::flush;
+
+        if((i+1) % 8 == 0) {
+            std::cout << std::endl;
+        } else if(i == nrbanks - 1) {
+            std::cout << std::endl;
+        }
+    }
 }
 
 /**
@@ -167,13 +186,8 @@ void Flasher::read_file(const std::string& filename, std::vector<uint8_t>& data)
         }
 
         // calculate md5 checksum and output it
-        unsigned char md5[MD5_DIGEST_LENGTH];
-        MD5(data.data(), data.size(), md5);
-        std::cout << "MD5: " << TEXTBLUE;
-        for(int i=0; i<MD5_DIGEST_LENGTH; i++) {
-            std::cout << std::hex << std::setw(2) << std::setfill('0') << (int)md5[i];
-        }
-        std::cout << TEXTWHITE << std::endl;
+        std::string md5sum = this->calculate_md5(data);
+        std::cout << "MD5: " << TEXTBLUE << md5sum << TEXTWHITE << std::endl;
     } else {
         throw std::runtime_error("Error opening file.");
     }
@@ -201,7 +215,7 @@ uint16_t Flasher::crc16_xmodem(const std::vector<uint8_t>& data) {
     return (uint16_t)crc;
 }
 
-std::string calculate_md5(const std::vector<uint8_t>& data) {
+std::string Flasher::calculate_md5(const std::vector<uint8_t>& data) {
     // Create an EVP context
     EVP_MD_CTX* ctx = EVP_MD_CTX_new();
     if (!ctx) {

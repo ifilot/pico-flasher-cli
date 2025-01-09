@@ -25,7 +25,7 @@
 #include <iostream>
 #include <iomanip>
 #include <exception>
-#include <openssl/md5.h>
+#include <openssl/evp.h>
 
 #include "serial.h"
 
@@ -86,4 +86,6 @@ private:
      * @return CRC16 checksum of the data.
      */
     uint16_t crc16_xmodem(const std::vector<uint8_t>& data);
+
+    std::string calculate_md5(const std::vector<uint8_t>& data);
 };
