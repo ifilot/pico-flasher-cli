@@ -200,3 +200,42 @@ uint16_t Flasher::crc16_xmodem(const std::vector<uint8_t>& data) {
 
     return (uint16_t)crc;
 }
+
+std::string calculate_md5(const std::vector<uint8_t>& data) {
+    // Create an EVP context
+    EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+    if (!ctx) {
+        throw std::runtime_error("Failed to create EVP_MD_CTX");
+    }
+
+    // Initialize the context with the MD5 algorithm
+    if (EVP_DigestInit_ex(ctx, EVP_md5(), nullptr) != 1) {
+        EVP_MD_CTX_free(ctx);
+        throw std::runtime_error("Failed to initialize MD5 digest");
+    }
+
+    // Pass the data to the context
+    if (EVP_DigestUpdate(ctx, data.data(), data.size()) != 1) {
+        EVP_MD_CTX_free(ctx);
+        throw std::runtime_error("Failed to update MD5 digest");
+    }
+
+    // Finalize the digest
+    unsigned char digest[EVP_MAX_MD_SIZE];
+    unsigned int digest_len = 0;
+    if (EVP_DigestFinal_ex(ctx, digest, &digest_len) != 1) {
+        EVP_MD_CTX_free(ctx);
+        throw std::runtime_error("Failed to finalize MD5 digest");
+    }
+
+    // Free the context
+    EVP_MD_CTX_free(ctx);
+
+    // Convert the digest to a hexadecimal string
+    std::ostringstream md5String;
+    for (unsigned int i = 0; i < digest_len; ++i) {
+        md5String << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(digest[i]);
+    }
+
+    return md5String.str();
+}
