@@ -165,6 +165,15 @@ void Flasher::read_file(const std::string& filename, std::vector<uint8_t>& data)
         } else {
             throw std::runtime_error("Error reading file.");
         }
+
+        // calculate md5 checksum and output it
+        unsigned char md5[MD5_DIGEST_LENGTH];
+        MD5(data.data(), data.size(), md5);
+        std::cout << "MD5: " << TEXTBLUE;
+        for(int i=0; i<MD5_DIGEST_LENGTH; i++) {
+            std::cout << std::hex << std::setw(2) << std::setfill('0') << (int)md5[i];
+        }
+        std::cout << TEXTWHITE << std::endl;
     } else {
         throw std::runtime_error("Error opening file.");
     }

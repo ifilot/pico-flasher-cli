@@ -25,6 +25,7 @@
 #include <iostream>
 #include <iomanip>
 #include <exception>
+#include <openssl/md5.h>
 
 #include "serial.h"
 
