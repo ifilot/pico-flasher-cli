@@ -218,6 +218,11 @@ uint16_t Flasher::crc16_xmodem(const std::vector<uint8_t>& data) {
     return (uint16_t)crc;
 }
 
+/**
+ * Calculates the MD5 checksum of the given data.
+ * @param data Data to calculate the checksum for.
+ * @return MD5 checksum of the data.
+ */
 std::string Flasher::calculate_md5(const std::vector<uint8_t>& data) {
     // Create an EVP context
     EVP_MD_CTX* ctx = EVP_MD_CTX_new();

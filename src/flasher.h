@@ -87,5 +87,10 @@ private:
      */
     uint16_t crc16_xmodem(const std::vector<uint8_t>& data);
 
+    /**
+     * Calculates the MD5 checksum of the given data.
+     * @param data Data to calculate the checksum for.
+     * @return MD5 checksum of the data.
+     */
     std::string calculate_md5(const std::vector<uint8_t>& data);
 };
