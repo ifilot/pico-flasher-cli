@@ -53,11 +53,14 @@ void Flasher::read_chip_id() {
             devname = "SST39SF010";
         break;
         default:
-            throw std::runtime_error("Unknown device ID.");
+            char buffer[7];
+            sprintf(buffer, "0x%04X", devid);
+            throw std::runtime_error("Unknown device ID (" + std::string(buffer) 
+                                    + "): Cannot recognize SST39SF0x0 chip.");
         break;
     }
     std::cout << "Device ID: " << TEXTGREEN << "0x" << std::hex << std::uppercase
-              << devid << TEXTWHITE << "(" << devname << ")" << std::endl;
+              << devid << TEXTWHITE << " (" << devname << ")" << std::endl;
 }
 
 /**
@@ -74,7 +77,26 @@ void Flasher::erase_chip() {
  * @param data Data read from the chip.
  */
 void Flasher::read_chip(std::vector<uint8_t>& data) {
+    std::cout << "Reading data:" << std::endl;
 
+    // read data
+    auto chunk = std::vector<uint8_t>(1024 * 16);
+    unsigned int nrbanks = data.size() / (1024 * 16);
+    for(unsigned int i=0; i<nrbanks; i++) {
+        std::vector<uint8_t> read_chunk(1024 * 16);
+        this->serial->read_bank(i, read_chunk);
+
+        std::cout << std::dec << std::setw(2) << std::setfill('0') << (i+1) << " [" << TEXTBLUE;
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << "0x" << this->crc16_xmodem(read_chunk) << TEXTWHITE << "] " << std::flush;
+
+        std::cout << TEXTWHITE << "] " << std::flush;
+
+        if((i+1) % 8 == 0) {
+            std::cout << std::endl;
+        } else if(i == nrbanks - 1) {
+            std::cout << std::endl;
+        }
+    }
 }
 
 /**
@@ -165,6 +187,10 @@ void Flasher::read_file(const std::string& filename, std::vector<uint8_t>& data)
         } else {
             throw std::runtime_error("Error reading file.");
         }
+
+        // calculate md5 checksum and output it
+        std::string md5sum = this->calculate_md5(data);
+        std::cout << "MD5: " << TEXTBLUE << md5sum << TEXTWHITE << std::endl;
     } else {
         throw std::runtime_error("Error opening file.");
     }
@@ -190,4 +216,43 @@ uint16_t Flasher::crc16_xmodem(const std::vector<uint8_t>& data) {
     }
 
     return (uint16_t)crc;
+}
+
+std::string Flasher::calculate_md5(const std::vector<uint8_t>& data) {
+    // Create an EVP context
+    EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+    if (!ctx) {
+        throw std::runtime_error("Failed to create EVP_MD_CTX");
+    }
+
+    // Initialize the context with the MD5 algorithm
+    if (EVP_DigestInit_ex(ctx, EVP_md5(), nullptr) != 1) {
+        EVP_MD_CTX_free(ctx);
+        throw std::runtime_error("Failed to initialize MD5 digest");
+    }
+
+    // Pass the data to the context
+    if (EVP_DigestUpdate(ctx, data.data(), data.size()) != 1) {
+        EVP_MD_CTX_free(ctx);
+        throw std::runtime_error("Failed to update MD5 digest");
+    }
+
+    // Finalize the digest
+    unsigned char digest[EVP_MAX_MD_SIZE];
+    unsigned int digest_len = 0;
+    if (EVP_DigestFinal_ex(ctx, digest, &digest_len) != 1) {
+        EVP_MD_CTX_free(ctx);
+        throw std::runtime_error("Failed to finalize MD5 digest");
+    }
+
+    // Free the context
+    EVP_MD_CTX_free(ctx);
+
+    // Convert the digest to a hexadecimal string
+    std::ostringstream md5String;
+    for (unsigned int i = 0; i < digest_len; ++i) {
+        md5String << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(digest[i]);
+    }
+
+    return md5String.str();
 }
