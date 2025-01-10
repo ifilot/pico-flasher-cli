@@ -36,8 +36,9 @@ Flasher::Flasher(const std::string& path) {
 
 /**
  * Reads the device ID from the serial port.
+ * @return Device ID of the chip -if valid-.
  */
-void Flasher::read_chip_id() {
+uint16_t Flasher::read_chip_id() {
     std::cout << "Interfacing with: " << this->serial->read_device_info() << std::endl;
     uint16_t devid = this->serial->get_device_id();
 
@@ -61,6 +62,8 @@ void Flasher::read_chip_id() {
     }
     std::cout << "Device ID: " << TEXTGREEN << "0x" << std::hex << std::uppercase
               << devid << TEXTWHITE << " (" << devname << ")" << std::endl;
+    
+    return devid;
 }
 
 /**
@@ -87,15 +90,14 @@ void Flasher::read_chip(std::vector<uint8_t>& data) {
         this->serial->read_bank(i, read_chunk);
 
         std::cout << std::dec << std::setw(2) << std::setfill('0') << (i+1) << " [" << TEXTBLUE;
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << "0x" << this->crc16_xmodem(read_chunk) << TEXTWHITE << "] " << std::flush;
-
-        std::cout << TEXTWHITE << "] " << std::flush;
+        std::cout << std::hex << std::setw(4) << std::setfill('0') << this->crc16_xmodem(read_chunk) << TEXTWHITE << "] " << std::flush;
 
         if((i+1) % 8 == 0) {
             std::cout << std::endl;
         } else if(i == nrbanks - 1) {
             std::cout << std::endl;
         }
+        std::copy(read_chunk.begin(), read_chunk.end(), data.begin() + (i * 1024 * 16));
     }
 }
 
@@ -116,7 +118,7 @@ void Flasher::write_chip(const std::vector<uint8_t>& data) {
         // perform transfer
         uint16_t checksum = this->serial->write_sector(i, chunk);
 
-        std::cout << std::dec << std::setw(3) << std::setfill('0') << (i+1) << " [";
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (i+1) << " [";
         if(checksum  == crc16) {
             std::cout << TEXTGREEN;
         } else {
@@ -191,6 +193,23 @@ void Flasher::read_file(const std::string& filename, std::vector<uint8_t>& data)
         // calculate md5 checksum and output it
         std::string md5sum = this->calculate_md5(data);
         std::cout << "MD5: " << TEXTBLUE << md5sum << TEXTWHITE << std::endl;
+    } else {
+        throw std::runtime_error("Error opening file.");
+    }
+}
+
+/**
+ * Writes data to a file.
+ * @param filename Name of the file to write.
+ * @param data Data to write to the file.
+ */
+void Flasher::write_file(const std::string& filename, const std::vector<uint8_t>& data) {
+    std::ofstream outfile(filename, std::ios::binary);
+    if (outfile) {
+        outfile.write(reinterpret_cast<const char*>(data.data()), data.size());
+        std::cout << "Writing " << TEXTBLUE << filename << TEXTWHITE << " (" 
+                    << std::dec << data.size() << " bytes)" << std::endl;
+        std::cout << "MD5: " << TEXTBLUE << this->calculate_md5(data) << TEXTWHITE << std::endl;
     } else {
         throw std::runtime_error("Error opening file.");
     }

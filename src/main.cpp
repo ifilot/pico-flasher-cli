@@ -79,22 +79,48 @@ int main(int argc, char* argv[]) {
         }
 
         Flasher flasher(ports[0].device_path);
-        flasher.read_chip_id();
+        uint16_t devid = flasher.read_chip_id();
+        size_t romsize = 0;
+        switch(devid) {
+            case 0xBFB7:
+                romsize = 512 * 1024;
+            break;
+            case 0xBFB6:
+                romsize = 256 * 1024;
+            break;
+            case 0xBFB5:
+                romsize = 128 * 1024;
+            break;
+            default:
+                throw std::logic_error("Error: Unknown device ID.");
+                return 1;
+            break;
+        }
 
         if(arg_erase.getValue()) {
             flasher.erase_chip();
         } else if(arg_write.getValue()) {
             std::vector<uint8_t> data;
             flasher.read_file(arg_input_filename.getValue(), data);
+            if(data.size() > romsize) {
+                throw std::runtime_error("Error: File size too large.");
+            } else if(romsize > data.size()) {
+                std::cout << "Resizing file to match chip size, appending zeros." << std::endl;
+                data.resize(romsize, 0);
+            }
             flasher.erase_chip();
             flasher.write_chip(data);
             flasher.verify_chip(data);
         } else if(arg_read.getValue()) {
-            std::vector<uint8_t> data;
+            std::vector<uint8_t> data(romsize, 0);
             flasher.read_chip(data);
+            flasher.write_file(arg_output_filename.getValue(), data);
         } else if(arg_verify.getValue()) {
             std::vector<uint8_t> data;
             flasher.read_file(arg_input_filename.getValue(), data);
+            if(data.size() != romsize) {
+                throw std::runtime_error("Error: File size does not match chip size.");
+            }
             flasher.verify_chip(data);
         }
 

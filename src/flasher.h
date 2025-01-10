@@ -46,8 +46,9 @@ public:
 
     /**
      * Reads the device ID from the serial port.
+     * @return Device ID of the chip -if valid-.
      */
-    void read_chip_id();
+    uint16_t read_chip_id();
 
     /**
      * Erases the chip.
@@ -78,6 +79,13 @@ public:
      * @param data Data read from the file.
      */
     void read_file(const std::string& filename, std::vector<uint8_t>& data);
+
+    /**
+     * Writes data to a file.
+     * @param filename Name of the file to write.
+     * @param data Data to write to the file.
+     */
+    void write_file(const std::string& filename, const std::vector<uint8_t>& data);
 
 private:
     /**
