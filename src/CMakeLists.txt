@@ -14,7 +14,7 @@ execute_process(
 # prepare configuration file
 SET(PROGNAME "PICOFLASH")
 SET(VERSION_MAJOR "0")
-SET(VERSION_MINOR "1")
+SET(VERSION_MINOR "2")
 SET(VERSION_MICRO "0")
 message(STATUS "Writing configuration file in: ${CMAKE_CURRENT_SOURCE_DIR}/config.h")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h @ONLY)
@@ -23,8 +23,11 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_SOURCE_DI
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+find_package(OpenSSL REQUIRED)
+
 # Add optimization flag
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 
 # Add the executable
 add_executable(picoflash main.cpp serial.cpp flasher.cpp serialport.cpp)
+target_link_libraries(picoflash OpenSSL::SSL OpenSSL::Crypto)

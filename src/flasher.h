@@ -25,6 +25,7 @@
 #include <iostream>
 #include <iomanip>
 #include <exception>
+#include <openssl/evp.h>
 
 #include "serial.h"
 
@@ -45,8 +46,9 @@ public:
 
     /**
      * Reads the device ID from the serial port.
+     * @return Device ID of the chip -if valid-.
      */
-    void read_chip_id();
+    uint16_t read_chip_id();
 
     /**
      * Erases the chip.
@@ -78,6 +80,13 @@ public:
      */
     void read_file(const std::string& filename, std::vector<uint8_t>& data);
 
+    /**
+     * Writes data to a file.
+     * @param filename Name of the file to write.
+     * @param data Data to write to the file.
+     */
+    void write_file(const std::string& filename, const std::vector<uint8_t>& data);
+
 private:
     /**
      * Calculates the CRC16 checksum of the given data.
@@ -85,4 +94,11 @@ private:
      * @return CRC16 checksum of the data.
      */
     uint16_t crc16_xmodem(const std::vector<uint8_t>& data);
+
+    /**
+     * Calculates the MD5 checksum of the given data.
+     * @param data Data to calculate the checksum for.
+     * @return MD5 checksum of the data.
+     */
+    std::string calculate_md5(const std::vector<uint8_t>& data);
 };
