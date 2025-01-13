@@ -14,7 +14,7 @@ execute_process(
 # prepare configuration file
 SET(PROGNAME "PICOFLASH")
 SET(VERSION_MAJOR "0")
-SET(VERSION_MINOR "2")
+SET(VERSION_MINOR "3")
 SET(VERSION_MICRO "0")
 message(STATUS "Writing configuration file in: ${CMAKE_CURRENT_SOURCE_DIR}/config.h")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h @ONLY)
