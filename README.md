@@ -13,7 +13,7 @@ Command-line tool to interface with the [Pico SST39SF0x0 Programmer](https://git
 Ensure you have the required dependencies on your system
 
 ```bash
-sudo apt update && sudo apt install -y build-essential cmake libtclap-dev pkg-config
+sudo apt update && sudo apt install -y build-essential cmake libcurl4-openssl-dev libopenssl-dev libtclap-dev pkg-config
 ```
 
 ### Compilation
@@ -46,11 +46,19 @@ Pico Flasher has 4 operational modes:
 ./picoflash -i <BINFILE> -w
 ```
 
+> [!NOTE]
+> You can supply either a local path or a URL to `-i`. When passing a URL,
+> **Pico Flasher** will automatically try to retrieve the file over the internet.
+
 ### Verify
 
 ```bash
 ./picoflash -i <BINFILE> -v
 ```
+
+> [!NOTE]
+> You can supply either a local path or a URL to `-i`. When passing a URL,
+> **Pico Flasher** will automatically try to retrieve the file over the internet.
 
 ### Erase
 

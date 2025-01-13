@@ -24,10 +24,14 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 find_package(OpenSSL REQUIRED)
+find_package(CURL REQUIRED)
+
+# Include directories
+include_directories(${CURL_INCLUDE_DIRS})
 
 # Add optimization flag
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 
 # Add the executable
 add_executable(picoflash main.cpp serial.cpp flasher.cpp serialport.cpp)
-target_link_libraries(picoflash OpenSSL::SSL OpenSSL::Crypto)
+target_link_libraries(picoflash OpenSSL::SSL OpenSSL::Crypto ${CURL_LIBRARIES})
