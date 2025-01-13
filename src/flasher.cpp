@@ -173,29 +173,59 @@ void Flasher::verify_chip(const std::vector<uint8_t>& data) {
  * @param data Data read from the file.
  */
 void Flasher::read_file(const std::string& filename, std::vector<uint8_t>& data) {
-    std::ifstream infile(filename, std::ios::binary);
-    if (infile) {
-        infile.seekg(0, std::ios::end);
-        std::streamsize size = infile.tellg();
-        infile.seekg(0, std::ios::beg);
+    if(filename.find("https://") == 0 || filename.find("http://") == 0) {
+        CURL* curl;
+        CURLcode res;
 
-        // Resize the vector to fit the file content
-        data.resize(size);
+        curl = curl_easy_init();
+        if(curl) {
+            curl_easy_setopt(curl, CURLOPT_URL, filename.c_str());
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &this->curl_write_callback);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
+            curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+            //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
 
-        // Read the file content into the vector
-        if (infile.read(reinterpret_cast<char*>(data.data()), size)) {
-            std::cout << "Reading " << TEXTBLUE << filename << TEXTWHITE << " (" 
-                        << std::dec << data.size() << " bytes)" << std::endl;
-        } else {
-            throw std::runtime_error("Error reading file.");
+            res = curl_easy_perform(curl);
+            if(res != CURLE_OK) {
+                throw std::runtime_error(std::string(curl_easy_strerror(res)));
+            } else {
+                std::cout << "Retrieving " << TEXTBLUE << filename << TEXTWHITE << " (" 
+                            << std::dec << data.size() << " bytes)" << std::endl;
+            }
+            curl_easy_cleanup(curl);
         }
 
-        // calculate md5 checksum and output it
-        std::string md5sum = this->calculate_md5(data);
-        std::cout << "MD5: " << TEXTBLUE << md5sum << TEXTWHITE << std::endl;
+        if(data.size() == 0) {
+            throw std::runtime_error("Error retrieving file.");
+        } else {
+
+        }
+
     } else {
-        throw std::runtime_error("Error opening file.");
+        std::ifstream infile(filename, std::ios::binary);
+        if (infile) {
+            infile.seekg(0, std::ios::end);
+            std::streamsize size = infile.tellg();
+            infile.seekg(0, std::ios::beg);
+
+            // Resize the vector to fit the file content
+            data.resize(size);
+
+            // Read the file content into the vector
+            if (infile.read(reinterpret_cast<char*>(data.data()), size)) {
+                std::cout << "Reading " << TEXTBLUE << filename << TEXTWHITE << " (" 
+                            << std::dec << data.size() << " bytes)" << std::endl;
+            } else {
+                throw std::runtime_error("Error reading file.");
+            }
+        } else {
+            throw std::runtime_error("Error opening file.");
+        }
     }
+
+    // calculate md5 checksum and output it
+    std::string md5sum = this->calculate_md5(data);
+    std::cout << "MD5: " << TEXTBLUE << md5sum << TEXTWHITE << std::endl;
 }
 
 /**
@@ -279,4 +309,18 @@ std::string Flasher::calculate_md5(const std::vector<uint8_t>& data) {
     }
 
     return md5String.str();
+}
+
+/**
+ * Write callback function of CURL
+ * @param ptr Pointer to the data to write.
+ * @param size Size of the data to write.
+ * @param nmemb Number of members to write.
+ * @param userdata Userdata to pass to the callback.
+ */
+size_t Flasher::curl_write_callback(void* ptr, size_t size, size_t nmemb, void* userdata) {
+    size_t total_size = size * nmemb;
+    std::vector<uint8_t>* data = reinterpret_cast<std::vector<uint8_t>*>(userdata);
+    data->insert(data->end(), reinterpret_cast<uint8_t*>(ptr), reinterpret_cast<uint8_t*>(ptr) + total_size);
+    return total_size;
 }

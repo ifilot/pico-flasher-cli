@@ -26,6 +26,7 @@
 #include <iomanip>
 #include <exception>
 #include <openssl/evp.h>
+#include <curl/curl.h>
 
 #include "serial.h"
 
@@ -101,4 +102,13 @@ private:
      * @return MD5 checksum of the data.
      */
     std::string calculate_md5(const std::vector<uint8_t>& data);
+
+    /**
+     * Write callback function of CURL
+     * @param ptr Pointer to the data to write.
+     * @param size Size of the data to write.
+     * @param nmemb Number of members to write.
+     * @param userdata Userdata to pass to the callback.
+     */
+    static size_t curl_write_callback(void* ptr, size_t size, size_t nmemb, void* userdata);
 };
