@@ -42,20 +42,22 @@ std::vector<serial_port_info> SerialPort::list_serial_ports_with_ids() {
         // Check if filename matches serial port patterns
         if (std::regex_match(filename, std::regex("tty(S|USB|ACM)[0-9]+"))) {
             std::string full_path = dev_path + "/" + filename;
-
             // Verify it's a character device
             if (stat(full_path.c_str(), &file_stat) == 0 && S_ISCHR(file_stat.st_mode)) {
                 serial_port_info port_info;
                 port_info.device_path = full_path;
 
                 // Locate sysfs information
-                std::string tty_path = "/sys/class/tty/" + filename + "/device";
+                std::string tty_path = "/sys/class/tty/" + filename + "/device/subsystem/devices";
+		std::cout << tty_path << std::endl;
                 char resolved_path[PATH_MAX];
                 if (realpath(tty_path.c_str(), resolved_path)) {
                     std::string device_path = resolved_path;
-                    size_t usb_pos = device_path.find("/usb");
+		    std::cout << device_path << std::endl;
+                    size_t usb_pos = device_path.find("/usb1");
                     if (usb_pos != std::string::npos) {
                         std::string usb_device_path = device_path.substr(0, usb_pos + 4);
+			std::cout << usb_device_path << std::endl;
 
                         // Read idVendor and idProduct
                         std::ifstream id_vendor_file(usb_device_path + "/idVendor");

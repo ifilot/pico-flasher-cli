@@ -71,6 +71,9 @@ int main(int argc, char* argv[]) {
         
         SerialPort sp;
         auto ports = sp.list_serial_ports_with_ids();
+	for(const auto& port : ports) {
+	    std::cout << "Port " << port.vendor_id << " | " << port.product_id << std::endl;
+	}
         if(ports.size() != 1) {
             std::cerr << "Error: No device found." << std::endl;
             return 1;
