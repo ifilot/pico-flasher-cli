@@ -22,61 +22,64 @@
 
 SerialPort::SerialPort() {}
 
-// Function to list all serial ports and their IDs
-std::vector<serial_port_info> SerialPort::list_serial_ports_with_ids() {
-    std::vector<serial_port_info> serial_ports;
-    const std::string dev_path = "/dev";
-    DIR *dir = opendir(dev_path.c_str());
+/**
+ * List all serial ports and their IDs
+ * @return vector of pairs with device path and device ID
+ */
+std::vector<std::pair<std::string, std::string>> SerialPort::list_serial_ports_with_ids() {
+    std::vector<std::pair<std::string, std::string>> devices;
 
-    if (!dir) {
-        perror("Failed to open /dev directory");
-        return serial_ports;
+    // Create a udev object
+    struct udev *udev = udev_new();
+    if (!udev) {
+        std::cerr << "Failed to create udev context" << std::endl;
+        return devices;
     }
 
-    struct dirent *entry;
-    struct stat file_stat;
+    // Create an enumerator to scan the devices
+    struct udev_enumerate *enumerate = udev_enumerate_new(udev);
+    if (!enumerate) {
+        std::cerr << "Failed to create udev enumerator" << std::endl;
+        udev_unref(udev);
+        return devices;
+    }
 
-    while ((entry = readdir(dir)) != nullptr) {
-        std::string filename = entry->d_name;
+    // Look for devices in the "tty" subsystem
+    udev_enumerate_add_match_subsystem(enumerate, "tty");
+    udev_enumerate_scan_devices(enumerate);
 
-        // Check if filename matches serial port patterns
-        if (std::regex_match(filename, std::regex("tty(S|USB|ACM)[0-9]+"))) {
-            std::string full_path = dev_path + "/" + filename;
+    struct udev_list_entry *devices_list = udev_enumerate_get_list_entry(enumerate);
+    struct udev_list_entry *entry;
 
-            // Verify it's a character device
-            if (stat(full_path.c_str(), &file_stat) == 0 && S_ISCHR(file_stat.st_mode)) {
-                serial_port_info port_info;
-                port_info.device_path = full_path;
+    // Iterate over all tty devices
+    udev_list_entry_foreach(entry, devices_list) {
+        const char *syspath = udev_list_entry_get_name(entry);
+        struct udev_device *dev = udev_device_new_from_syspath(udev, syspath);
 
-                // Locate sysfs information
-                std::string tty_path = "/sys/class/tty/" + filename + "/device";
-                char resolved_path[PATH_MAX];
-                if (realpath(tty_path.c_str(), resolved_path)) {
-                    std::string device_path = resolved_path;
-                    size_t usb_pos = device_path.find("/usb");
-                    if (usb_pos != std::string::npos) {
-                        std::string usb_device_path = device_path.substr(0, usb_pos + 4);
+        if (dev) {
+            const char *devname = udev_device_get_sysname(dev);
 
-                        // Read idVendor and idProduct
-                        std::ifstream id_vendor_file(usb_device_path + "/idVendor");
-                        std::ifstream id_product_file(usb_device_path + "/idProduct");
+            // Only consider devices that start with "ttyACM"
+            if (std::string(devname).find("ttyACM") == 0) {
+                // Get the parent USB device
+                struct udev_device *parent = udev_device_get_parent_with_subsystem_devtype(dev, "usb", "usb_device");
+                if (parent) {
+                    const char *idVendor = udev_device_get_sysattr_value(parent, "idVendor");
+                    const char *idProduct = udev_device_get_sysattr_value(parent, "idProduct");
 
-                        if (id_vendor_file.is_open()) {
-                            id_vendor_file >> port_info.vendor_id;
-                            id_vendor_file.close();
-                        }
-                        if (id_product_file.is_open()) {
-                            id_product_file >> port_info.product_id;
-                            id_product_file.close();
-                        }
+                    if (idVendor && idProduct) {
+                        std::ostringstream vendor_product;
+                        vendor_product << idVendor << ":" << idProduct;
+                        devices.emplace_back(devname, vendor_product.str());
                     }
                 }
-
-                serial_ports.push_back(port_info);
             }
+
+            udev_device_unref(dev);
         }
     }
 
-    closedir(dir);
-    return serial_ports;
+    udev_enumerate_unref(enumerate);
+    udev_unref(udev);
+    return devices;
 }

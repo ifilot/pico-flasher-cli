@@ -31,6 +31,8 @@
 #include <stdint.h>
 #include <vector>
 
+#include "config.h"
+
 class Serial {
 
 private:
@@ -87,6 +89,12 @@ public:
      * Erases the chip.
      */
     uint16_t erase_chip();
+
+    /**
+     * Erases a sector on the chip.
+     * @param sector which sector to erase
+     */
+    uint16_t erase_sector(uint16_t sector);
 
     /**
      * Closes the serial port.

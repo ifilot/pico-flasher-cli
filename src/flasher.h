@@ -28,6 +28,7 @@
 #include <openssl/evp.h>
 #include <curl/curl.h>
 
+#include "config.h"
 #include "serial.h"
 
 #define TEXTGREEN "\033[1;92m"
@@ -69,10 +70,25 @@ public:
     void write_chip(const std::vector<uint8_t>& data);
 
     /**
+     * Writes data to a bank of the chip.
+     * @param data Data to write to the chip.
+     * @param bank Bank to write the data to.
+     */
+    void write_bank(const std::vector<uint8_t>& data, unsigned int bank);
+
+    /**
      * Verifies the data on the chip.
      * @param data Data to verify on the chip.
      */
     void verify_chip(const std::vector<uint8_t>& data);
+
+    /**
+     * Verifies the data on a bank of the chip.
+     * @param data Data to verify on the chip.
+     * @param bank Bank to verify the data on.
+     * @throws std::runtime_error if the data does not match the chip.
+     */
+    void verify_bank(const std::vector<uint8_t>& data, unsigned int bank);
 
     /**
      * Reads data from a file.
