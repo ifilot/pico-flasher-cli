@@ -3,8 +3,13 @@
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/ifilot/pico-flasher-cli?label=version)
 [![build](https://github.com/ifilot/pico-flasher-cli/actions/workflows/build.yml/badge.svg)](https://github.com/ifilot/pico-flasher-cli/actions/workflows/build.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+![Raspberry Pi](https://img.shields.io/badge/-Raspberry%20Pi-C51A4A?logo=Raspberry-Pi)
 
 Command-line tool to interface with the [Pico SST39SF0x0 Programmer](https://github.com/ifilot/pico-sst39sf0x0-programmer).
+
+> [!NOTE]
+> Although the tool is designed for Linux machines in general, testing of
+> the tool is primarily done on the Raspberry Pi.
 
 ## Compilation instructions
 
@@ -13,7 +18,9 @@ Command-line tool to interface with the [Pico SST39SF0x0 Programmer](https://git
 Ensure you have the required dependencies on your system
 
 ```bash
-sudo apt update && sudo apt install -y build-essential cmake libcurl4-openssl-dev libopenssl-dev libtclap-dev pkg-config
+sudo apt update && \
+sudo apt install -y build-essential cmake libcurl4-openssl-dev \
+libopenssl-dev libtclap-dev pkg-config libudev-dev
 ```
 
 ### Compilation
@@ -32,36 +39,48 @@ Pico Flasher has 4 operational modes:
 * Read: Read data from chip and write to binary file
 * Write: Write data to chip from binary file
 * Verify: Verify data on chip using binary file
-* Erase: Erase all data on chip (set everything to `0xFFFF`)
+* Erase: Erase all data on chip (set everything to `0xFF`)
 
-### Read
+
+Without any further parameters, these modes operate **on the whole chip**. For the
+*write* and *verify* operations, it is also possible to execute these for a single
+16 KiB bank.
+
+**Read**
 
 ```bash
 ./picoflash -o <BINFILE> -r
 ```
 
-### Write
+* `-o`: Output files
+* `-r`: Read mode
+
+**Write**
 
 ```bash
-./picoflash -i <BINFILE> -w
+./picoflash -i <BINFILE> -w [-b <bank>]
 ```
 
-> [!NOTE]
-> You can supply either a local path or a URL to `-i`. When passing a URL,
-> **Pico Flasher** will automatically try to retrieve the file over the internet.
+* `-i`: Input file: Can be either local file or URL. If a URL is supplied, the
+  data is automatically grabbed from the internet via an internal CURL routine.
+* `-w`: Write mode
+* *(optional) `-b`: Bank to write to. Input file has to be strictly 16 KiB for this mode.
 
-### Verify
+**Verify**
 
 ```bash
 ./picoflash -i <BINFILE> -v
 ```
 
-> [!NOTE]
-> You can supply either a local path or a URL to `-i`. When passing a URL,
-> **Pico Flasher** will automatically try to retrieve the file over the internet.
+* `-i`: Input file: Can be either local file or URL. If a URL is supplied, the
+  data is automatically grabbed from the internet via an internal CURL routine.
+* `-v`: Verify mode
+* *(optional) `-b`: Bank to write to. Input file has to be strictly 16 KiB for this mode.
 
-### Erase
+**Erase**
 
 ```bash
 ./picoflash -e
 ```
+
+* `-e`: Erase mode
