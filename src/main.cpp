@@ -69,19 +69,26 @@ int main(int argc, char* argv[]) {
             return 1;
         }
         
+        // loop over all serial devices and look for the signature of a RASPBERRY PI PICO
         SerialPort sp;
-        auto ports = sp.list_serial_ports_with_ids();
-	for(const auto& port : ports) {
-	    std::cout << "Port " << port.vendor_id << " | " << port.product_id << std::endl;
-	}
-        if(ports.size() != 1) {
-            std::cerr << "Error: No device found." << std::endl;
-            return 1;
-        } else {
-            std::cout << "Autoselecting: " << ports[0].device_path << std::endl;
+        auto devices = sp.list_serial_ports_with_ids();
+        std::string dev;
+        std::cout << "Listing serial devices:" << std::endl;
+        for(const auto& device : devices) {
+            std::cout << device.second << " " << device.first << std::endl;
+            if(device.second == "2e8a:0009") {
+                dev = "/dev/" + device.first;
+                std::cout << "Autoselecting: " << dev << std::endl;
+                continue;
+            }
         }
 
-        Flasher flasher(ports[0].device_path);
+        // throw an error if no suitable device was found
+        if(dev.empty()) {
+            throw std::runtime_error("Error: No valid serial device found. Did you connect the PICO Flasher?");
+        }
+
+        Flasher flasher(dev);
         uint16_t devid = flasher.read_chip_id();
         size_t romsize = 0;
         switch(devid) {

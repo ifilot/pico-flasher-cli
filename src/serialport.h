@@ -23,12 +23,8 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <fstream>
-#include <dirent.h>
-#include <sys/stat.h>
-#include <regex>
-#include <unistd.h>
-#include <cctype>
+#include <libudev.h>
+#include <sstream>
 
 // Structure to store serial port information
 struct serial_port_info {
@@ -41,5 +37,9 @@ class SerialPort {
 public:
     SerialPort();
 
-    std::vector<serial_port_info> list_serial_ports_with_ids();
+    /**
+     * List all serial ports and their IDs
+     * @return vector of pairs with device path and device ID
+     */
+    std::vector<std::pair<std::string, std::string>> list_serial_ports_with_ids();
 };
