@@ -115,15 +115,36 @@ int main(int argc, char* argv[]) {
         } else if(arg_write.getValue()) {
             std::vector<uint8_t> data;
             flasher.read_file(arg_input_filename.getValue(), data);
-            if(data.size() > romsize) {
-                throw std::runtime_error("Error: File size too large.");
-            } else if(romsize > data.size()) {
-                std::cout << "Resizing file to match chip size, appending zeros." << std::endl;
-                data.resize(romsize, 0);
+            
+            if(arg_bank.isSet()) {
+                unsigned int bank = arg_bank.getValue();
+                unsigned int max_bank = 8 * std::pow(2, (devid - 0xBFB5));
+
+                // check if data size is appropriate
+                if(data.size() != 0x4000) {
+                    throw std::runtime_error("Error: Data size must be 16KB");
+                }
+                
+                // check if bank number is appropriate
+                std::cout << "Flashing ROM bank: " << bank << std::endl;
+                if(bank >= max_bank) {
+                    throw std::runtime_error("Error: Bank number must be between 0 and " + std::to_string(max_bank-1) + ".");
+                }
+
+                flasher.write_bank(data, bank);
+                flasher.verify_bank(data, bank);
+            } else {
+                if(data.size() > romsize) {
+                    throw std::runtime_error("Error: File size too large.");
+                } else if(romsize > data.size()) {
+                    std::cout << "Resizing file to match chip size, appending zeros." << std::endl;
+                    data.resize(romsize, 0);
+                }
+
+                flasher.erase_chip();
+                flasher.write_chip(data);
+                flasher.verify_chip(data);
             }
-            flasher.erase_chip();
-            flasher.write_chip(data);
-            flasher.verify_chip(data);
         } else if(arg_read.getValue()) {
             std::vector<uint8_t> data(romsize, 0);
             flasher.read_chip(data);

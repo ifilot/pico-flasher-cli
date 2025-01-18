@@ -69,6 +69,13 @@ public:
     void write_chip(const std::vector<uint8_t>& data);
 
     /**
+     * Writes data to a bank of the chip.
+     * @param data Data to write to the chip.
+     * @param bank Bank to write the data to.
+     */
+    void write_bank(const std::vector<uint8_t>& data, unsigned int bank);
+
+    /**
      * Verifies the data on the chip.
      * @param data Data to verify on the chip.
      */

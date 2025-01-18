@@ -125,21 +125,44 @@ uint16_t Serial::erase_chip() {
 }
 
 /**
+ * Erases a sector on the chip.
+ * @param sector which sector to erase
+ */
+uint16_t Serial::erase_sector(uint16_t sector) {
+    char cmd[9];
+    sprintf(cmd, "ESST%04X", sector * 0x1000);
+    this->send_command(cmd);
+    uint16_t val;
+    int n = this->read_from_serial_port((char*)&val, 2);
+    if (n < 0) {
+        throw std::runtime_error(std::string("Error reading from serial port: ") + 
+                                 std::string(std::strerror(errno)));
+    }
+
+    // swap the two bytes
+    return (val >> 8) | (val << 8);
+}
+
+/**
  * Write sector on flash chip.
  * @param sector which sector to write to
  * @param data data to write to sector
  * @return Number of bytes written, or -1 on error.
  */
 uint16_t Serial::write_sector(uint16_t sector, const std::vector<uint8_t>& data) {
-    if(data.size() != (1024 * 4)) {
+    if(data.size() != 0x1000) {
         throw std::runtime_error("Error: Data size must be 4KB");
     }
     
     char cmd[9];
     sprintf(cmd, "WRSECT%02X", sector);
     this->send_command(cmd);
-    this->write_to_serial_port((char*)data.data(), data.size());
-    
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    unsigned int byteswritten = this->write_to_serial_port((char*)data.data(), 0x1000);
+    std::cout << byteswritten << std::endl;
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
     uint16_t val;
     this->read_from_serial_port((char*)&val, 2);
 
@@ -212,12 +235,17 @@ void Serial::send_command(const char* cmd) {
         std::cerr << "Error writing to serial port: " << std::strerror(errno) << std::endl;
     }
 
+    std::cout << "Writing command: " << std::string(cmd, 8) << std::endl;
+
     // read from port
     char buffer[16];
     int n = this->read_from_serial_port(buffer, 8);
+    std::cout << n << std::endl;
+
+    std::cout << "Receive command: " << std::string(buffer, 8) << std::endl;
+
     if (n < 0) {
-        throw std::runtime_error(std::string("Error reading from serial port: ") + 
-                                 std::string(std::strerror(errno)));
+        throw std::runtime_error(std::string("Error reading from serial port: ") + std::string(std::strerror(errno)));
     } else {
         if(std::string(buffer, 8) != std::string(cmd,8)) {
             throw std::runtime_error("Error: Command not received correctly: " + std::string(buffer, 8));
