@@ -157,11 +157,20 @@ uint16_t Serial::write_sector(uint16_t sector, const std::vector<uint8_t>& data)
     char cmd[9];
     sprintf(cmd, "WRSECT%02X", sector);
     this->send_command(cmd);
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-    unsigned int byteswritten = this->write_to_serial_port((char*)data.data(), 0x1000);
+    size_t byteswritten = 0;
+
+    while(byteswritten < 0x1000) {
+        int n = this->write_to_serial_port((char*)data.data() + byteswritten, 0x1000 - byteswritten);
+        if(n < 0) {
+            throw std::runtime_error(std::string("Error writing to serial port: ") + 
+                                     std::string(std::strerror(errno)));
+        }
+        byteswritten += n;
+        std::cout << byteswritten << std::endl;
+    }
+    // unsigned int byteswritten = this->write_to_serial_port((char*)data.data(), 0x1000);
     std::cout << byteswritten << std::endl;
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
     uint16_t val;
     this->read_from_serial_port((char*)&val, 2);
@@ -240,8 +249,7 @@ void Serial::send_command(const char* cmd) {
     // read from port
     char buffer[16];
     int n = this->read_from_serial_port(buffer, 8);
-    std::cout << n << std::endl;
-
+    tcflush(this->fd, TCIFLUSH);
     std::cout << "Receive command: " << std::string(buffer, 8) << std::endl;
 
     if (n < 0) {

@@ -141,21 +141,18 @@ void Flasher::write_chip(const std::vector<uint8_t>& data) {
  * @param bank Bank to write the data to.
  */
 void Flasher::write_bank(const std::vector<uint8_t>& data, unsigned int bank) {
-    unsigned int nrsectors = 4;
+    unsigned int nrsectors = 4;//std::min((size_t)128, data.size() / 4096);
     std::cout << "Flashing " << nrsectors << " sectors, please wait..." << std::endl;
-    auto chunk = std::vector<uint8_t>(0x1000);
+    auto chunk = std::vector<uint8_t>(1024 * 4);
     for (unsigned int i = 0; i < nrsectors; i++) {
-        // copy sector from data to sector chunk
-        std::copy(data.begin() + (i * 0x1000), data.begin() + ((i + 1) * 0x1000), chunk.begin());
+        std::copy(data.begin() + (i * 1024 * 4), data.begin() + ((i + 1) * 1024 * 4), chunk.begin());
 
         // calculate checksum
         uint16_t crc16 = this->crc16_xmodem(chunk);
 
         // perform transfer
-        //uint16_t erasetime = this->serial->erase_sector(bank * 4 + i);
-        uint16_t checksum = this->serial->write_sector(bank * 4 + i, chunk);
-        
-        // output whether data has been correctly received
+        uint16_t checksum = this->serial->write_sector(i, chunk);
+
         std::cout << std::hex << std::setw(2) << std::setfill('0') << (i+1) << " [";
         if(checksum  == crc16) {
             std::cout << TEXTGREEN;
@@ -165,7 +162,7 @@ void Flasher::write_bank(const std::vector<uint8_t>& data, unsigned int bank) {
         std::cout << std::hex << std::setw(4) << std::setfill('0') << checksum << TEXTWHITE;
         std::cout << "] " << std::flush;
 
-        if((i+1) % 4 == 0) {
+        if((i+1) % 8 == 0) {
             std::cout << std::endl;
         } else if(i == nrsectors - 1) {
             std::cout << std::endl;
