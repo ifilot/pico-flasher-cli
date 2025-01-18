@@ -21,6 +21,7 @@
 #include <iostream>
 #include <tclap/CmdLine.h>
 #include <cmath>
+#include <random>
 
 #include "config.h"
 #include "flasher.h"
@@ -43,8 +44,10 @@ int main(int argc, char* argv[]) {
         TCLAP::SwitchArg arg_write("w","write","Write data to chip",false);
         TCLAP::SwitchArg arg_read("r","read","Read data from chip",false);
         TCLAP::SwitchArg arg_verify("v","verify","Verify data on chip",false);
+        TCLAP::SwitchArg arg_test("t","test","Test all operations on the chip",false);
         TCLAP::ValueArg<unsigned int> arg_bank("b", "bank", "Bank number", false, 0, "bank");
         cmd.add(arg_erase);
+        cmd.add(arg_test);
         cmd.add(arg_write);
         cmd.add(arg_read);
         cmd.add(arg_verify);
@@ -65,10 +68,10 @@ int main(int argc, char* argv[]) {
         std::cout << "--------------------------------------------------------------" << std::endl;
         
         // get operation mode
-        unsigned int modes = arg_erase.getValue() + arg_write.getValue() + arg_read.getValue() + arg_verify.getValue();
+        unsigned int modes = arg_erase.getValue() + arg_write.getValue() + arg_read.getValue() + arg_verify.getValue() + + arg_test.getValue();
         if(modes != 1) {
             std::cerr << "Error: Please select one operation mode." << std::endl;
-            std::cerr << "Select one of the following modes: -e, -w, -r, -v" << std::endl;
+            std::cerr << "Select one of the following modes: -e, -w, -r, -v, -t" << std::endl;
             return 1;
         }
         
@@ -77,12 +80,14 @@ int main(int argc, char* argv[]) {
         auto devices = sp.list_serial_ports_with_ids();
         std::string dev;
         std::cout << "Listing serial devices:" << std::endl;
+        unsigned int ctr = 0;
         for(const auto& device : devices) {
-            std::cout << device.second << " " << device.first << std::endl;
+            std::cout << (++ctr) << (". /dev/" + device.first) << " " << device.second;
             if(device.second == "2e8a:0009") {
                 dev = "/dev/" + device.first;
-                std::cout << "Autoselecting: " << dev << std::endl;
-                continue;
+                std::cout << TEXTBLUE << " (*)" << TEXTWHITE << std::endl;
+            } else {
+                std::cout << std::endl;
             }
         }
 
@@ -110,7 +115,54 @@ int main(int argc, char* argv[]) {
             break;
         }
 
-        if(arg_erase.getValue()) {
+        if(arg_test.getValue()) {
+            // warn the user about the test and ask if they want to continue
+            std::cout << TEXTRED << "Warning" << TEXTWHITE << ": This will erase the entire chip and write random data to it." << std::endl;
+            std::cout << "Do you want to continue? [y/N]: ";
+            char c;
+            std::cin >> c;
+            if(c != 'y' && c != 'Y') {
+                std::cout << "Cancelling operation." << std::endl;
+                return 0;
+            }
+
+            // construct random number generator
+            std::random_device rd;  // Seed generator
+            std::mt19937 gen(rd()); // Mersenne Twister RNG
+            std::uniform_int_distribution<uint8_t> dist(0, 255);
+
+            // generate random data
+            std::vector<uint8_t> data(romsize, 0);
+            for (auto& byte : data) {
+                byte = dist(gen);
+            }
+
+            // perform full-chip write
+            flasher.erase_chip();
+            flasher.write_chip(data);
+            flasher.verify_chip(data);
+
+            // perform bank-wise write with new randomly generated data
+            for (auto& byte : data) {
+                byte = dist(gen);
+            }
+
+            for(unsigned int i=0; i<romsize/BANKSIZE; i++) {
+                std::vector<uint8_t> chunk(data.begin() + i * BANKSIZE, data.begin() + (i + 1) * BANKSIZE);
+                flasher.write_bank(chunk, i);
+                flasher.verify_bank(chunk, i);
+            }
+            flasher.verify_chip(data);
+        } else if(arg_erase.getValue()) {
+            std::cout << TEXTRED << "Warning" << TEXTWHITE << ": This will erase the entire chip." << std::endl;
+            std::cout << "Do you want to continue? [y/N]: ";
+            char c;
+            std::cin >> c;
+            if(c != 'y' && c != 'Y') {
+                std::cout << "Cancelling operation." << std::endl;
+                return 0;
+            }
+
             flasher.erase_chip();
         } else if(arg_write.getValue()) {
             std::vector<uint8_t> data;
@@ -126,7 +178,7 @@ int main(int argc, char* argv[]) {
                 }
                 
                 // check if bank number is appropriate
-                std::cout << "Flashing ROM bank: " << bank << std::endl;
+                std::cout << "Flashing ROM bank: " TEXTBLUE << bank << TEXTWHITE << std::endl;
                 if(bank >= max_bank) {
                     throw std::runtime_error("Error: Bank number must be between 0 and " + std::to_string(max_bank-1) + ".");
                 }
@@ -159,7 +211,7 @@ int main(int argc, char* argv[]) {
                 unsigned int max_bank = 8 * std::pow(2, (devid - 0xBFB5));
 
                 // check if data size is appropriate
-                if(data.size() != 1024 * 16) {
+                if(data.size() != BANKSIZE) {
                     throw std::runtime_error("Error: Data size must be 16KB");
                 }
                 

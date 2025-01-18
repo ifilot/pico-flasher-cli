@@ -83,10 +83,10 @@ void Flasher::read_chip(std::vector<uint8_t>& data) {
     std::cout << "Reading data:" << std::endl;
 
     // read data
-    auto chunk = std::vector<uint8_t>(1024 * 16);
-    unsigned int nrbanks = data.size() / (1024 * 16);
+    auto chunk = std::vector<uint8_t>(BANKSIZE);
+    unsigned int nrbanks = data.size() / (BANKSIZE);
     for(unsigned int i=0; i<nrbanks; i++) {
-        std::vector<uint8_t> read_chunk(1024 * 16);
+        std::vector<uint8_t> read_chunk(BANKSIZE);
         this->serial->read_bank(i, read_chunk);
 
         std::cout << std::dec << std::setw(2) << std::setfill('0') << (i+1) << " [" << TEXTBLUE;
@@ -97,7 +97,7 @@ void Flasher::read_chip(std::vector<uint8_t>& data) {
         } else if(i == nrbanks - 1) {
             std::cout << std::endl;
         }
-        std::copy(read_chunk.begin(), read_chunk.end(), data.begin() + (i * 1024 * 16));
+        std::copy(read_chunk.begin(), read_chunk.end(), data.begin() + (i * BANKSIZE));
     }
 }
 
@@ -108,9 +108,9 @@ void Flasher::read_chip(std::vector<uint8_t>& data) {
 void Flasher::write_chip(const std::vector<uint8_t>& data) {
     unsigned int nrsectors = std::min((size_t)128, data.size() / 4096);
     std::cout << "Flashing " << nrsectors << " sectors, please wait..." << std::endl;
-    auto chunk = std::vector<uint8_t>(1024 * 4);
+    auto chunk = std::vector<uint8_t>(SECTORSIZE);
     for (unsigned int i = 0; i < nrsectors; i++) {
-        std::copy(data.begin() + (i * 1024 * 4), data.begin() + ((i + 1) * 1024 * 4), chunk.begin());
+        std::copy(data.begin() + (i * SECTORSIZE), data.begin() + ((i + 1) * SECTORSIZE), chunk.begin());
 
         // calculate checksum
         uint16_t crc16 = this->crc16_xmodem(chunk);
@@ -141,11 +141,10 @@ void Flasher::write_chip(const std::vector<uint8_t>& data) {
  * @param bank Bank to write the data to.
  */
 void Flasher::write_bank(const std::vector<uint8_t>& data, unsigned int bank) {
-    unsigned int nrsectors = 4;//std::min((size_t)128, data.size() / 4096);
-    std::cout << "Flashing " << nrsectors << " sectors, please wait..." << std::endl;
-    auto chunk = std::vector<uint8_t>(1024 * 4);
+    unsigned int nrsectors = 4;
+    auto chunk = std::vector<uint8_t>(SECTORSIZE);
     for (unsigned int i = 0; i < nrsectors; i++) {
-        std::copy(data.begin() + (i * 1024 * 4), data.begin() + ((i + 1) * 1024 * 4), chunk.begin());
+        std::copy(data.begin() + (i * SECTORSIZE), data.begin() + ((i + 1) * SECTORSIZE), chunk.begin());
 
         // calculate checksum
         uint16_t crc16 = this->crc16_xmodem(chunk);
@@ -181,15 +180,15 @@ void Flasher::verify_chip(const std::vector<uint8_t>& data) {
     std::cout << "Verifying data:" << std::endl;
 
     // verify integrity
-    auto chunk = std::vector<uint8_t>(1024 * 16);
-    unsigned int nrbanks = data.size() / (1024 * 16);
+    auto chunk = std::vector<uint8_t>(BANKSIZE);
+    unsigned int nrbanks = data.size() / BANKSIZE;
     for(unsigned int i=0; i<nrbanks; i++) {
-        std::vector<uint8_t> read_chunk(1024 * 16);
+        std::vector<uint8_t> read_chunk(BANKSIZE);
         this->serial->read_bank(i, read_chunk);
 
         std::cout << std::dec << std::setw(2) << std::setfill('0') << (i+1) << " [";
 
-        if (std::equal(data.begin() + (i * 1024 * 16), data.begin() + ((i + 1) * 1024 * 16), read_chunk.begin())) {
+        if (std::equal(data.begin() + (i * BANKSIZE), data.begin() + ((i + 1) * BANKSIZE), read_chunk.begin())) {
             std::cout << TEXTGREEN << "PASS";
         } else {
             std::cout << TEXTRED << "FAIL";
@@ -215,12 +214,12 @@ void Flasher::verify_bank(const std::vector<uint8_t>& data, unsigned int bank) {
     std::cout << "Verifying data: " << TEXTBLUE;
 
     // verify integrity
-    auto chunk = std::vector<uint8_t>(1024 * 16);
+    auto chunk = std::vector<uint8_t>(BANKSIZE);
     this->serial->read_bank(bank, chunk);
 
     std::cout << "Bank " << std::dec << std::setw(2) << std::setfill('0') << bank << TEXTWHITE << " [";
 
-    if (std::equal(data.begin(), data.begin() + 1024 * 16, chunk.begin())) {
+    if (std::equal(data.begin(), data.begin() + BANKSIZE, chunk.begin())) {
         std::cout << TEXTGREEN << "PASS";
     } else {
         std::cout << TEXTRED << "FAIL";

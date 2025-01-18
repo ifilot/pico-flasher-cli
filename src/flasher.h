@@ -28,6 +28,7 @@
 #include <openssl/evp.h>
 #include <curl/curl.h>
 
+#include "config.h"
 #include "serial.h"
 
 #define TEXTGREEN "\033[1;92m"

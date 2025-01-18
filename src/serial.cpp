@@ -183,15 +183,15 @@ uint16_t Serial::write_sector(uint16_t sector, const std::vector<uint8_t>& data)
  * @param data data to read from sector
  */
 void Serial::read_bank(uint16_t bank, std::vector<uint8_t>& chunk) {
-    if(chunk.size() != (1024 * 16)) {
+    if(chunk.size() != BANKSIZE) {
         throw std::runtime_error("Error: Data size must be 16KB");
     }
     char cmd[9];
     sprintf(cmd, "RDBANK%02X", bank);
     this->send_command(cmd);
     unsigned int bytesread = 0;
-    while(bytesread < 1024 * 16) {
-        int n = this->read_from_serial_port((char*)chunk.data() + bytesread, 1024*16 - bytesread);
+    while(bytesread < BANKSIZE) {
+        int n = this->read_from_serial_port((char*)chunk.data() + bytesread, BANKSIZE - bytesread);
         if(n < 0) {
             throw std::runtime_error(std::string("Error reading from serial port: ") + 
                                      std::string(std::strerror(errno)));

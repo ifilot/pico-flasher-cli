@@ -31,6 +31,8 @@
 #include <stdint.h>
 #include <vector>
 
+#include "config.h"
+
 class Serial {
 
 private:
