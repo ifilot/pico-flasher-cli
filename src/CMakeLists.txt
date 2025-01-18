@@ -36,3 +36,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
 # Add the executable
 add_executable(picoflash main.cpp serial.cpp flasher.cpp serialport.cpp)
 target_link_libraries(picoflash OpenSSL::SSL OpenSSL::Crypto ${CURL_LIBRARIES} ${UDEV_LIBRARIES})
+
+# Define where to install the executable
+install(TARGETS picoflash
+    RUNTIME DESTINATION bin # For executables
+)

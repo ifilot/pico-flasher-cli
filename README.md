@@ -32,6 +32,12 @@ cmake ../src
 make -j
 ```
 
+To install **picoflash** systemwide, run
+
+```bash
+sudo make install
+```
+
 ## Usage
 
 Pico Flasher has 4 operational modes:
@@ -41,7 +47,6 @@ Pico Flasher has 4 operational modes:
 * Verify: Verify data on chip using binary file
 * Erase: Erase all data on chip (set everything to `0xFF`)
 
-
 Without any further parameters, these modes operate **on the whole chip**. For the
 *write* and *verify* operations, it is also possible to execute these for a single
 16 KiB bank.
@@ -49,7 +54,7 @@ Without any further parameters, these modes operate **on the whole chip**. For t
 **Read**
 
 ```bash
-./picoflash -o <BINFILE> -r
+picoflash -o <BINFILE> -r
 ```
 
 * `-o`: Output files
@@ -58,7 +63,7 @@ Without any further parameters, these modes operate **on the whole chip**. For t
 **Write**
 
 ```bash
-./picoflash -i <BINFILE> -w [-b <bank>]
+picoflash -i <BINFILE> -w [-b <bank>]
 ```
 
 * `-i`: Input file: Can be either local file or URL. If a URL is supplied, the
@@ -69,7 +74,7 @@ Without any further parameters, these modes operate **on the whole chip**. For t
 **Verify**
 
 ```bash
-./picoflash -i <BINFILE> -v
+picoflash -i <BINFILE> -v
 ```
 
 * `-i`: Input file: Can be either local file or URL. If a URL is supplied, the
@@ -80,7 +85,21 @@ Without any further parameters, these modes operate **on the whole chip**. For t
 **Erase**
 
 ```bash
-./picoflash -e
+picoflash -e
 ```
 
 * `-e`: Erase mode
+
+## Testing
+
+There is also a test mode which will perform a number of operations on the chip,
+basically checking both the working of the Pico Flasher as well as of the
+SST39SF0x0 chip. To use this mode, simply run
+
+```bash
+picoflash -t
+```
+
+> [!IMPORTANT]
+> This will irrevocably remove all data on the chip. If this is not your intention,
+> make sure you make a copy of the chip's contents first using the *read* operation.

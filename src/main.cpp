@@ -29,7 +29,7 @@
 
 int main(int argc, char* argv[]) {
     try {
-        TCLAP::CmdLine cmd("Transfer data to SST39SF0x0 chip");
+        TCLAP::CmdLine cmd("Transfer data to SST39SF0x0 chip", ' ', PROGRAM_VERSION);
 
         // input filename
         TCLAP::ValueArg<std::string> arg_input_filename("i","input","Input file (i.e. .BIN)",false,"DATA.BIN","filename");
