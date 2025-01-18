@@ -16,7 +16,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install dependencies
-      run: apt-get update && apt-get install -y cmake build-essential libtclap-dev libssl-dev libcurl4-openssl-dev git libudev-dev
+      run: apt-get update && apt-get install -y cmake build-essential libtclap-dev libssl-dev libcurl4-openssl-dev git libudev-dev pkg-config
     - name: Compile firmware
       shell: bash
       run: |

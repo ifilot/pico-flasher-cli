@@ -30,8 +30,6 @@
 #include <string>
 #include <stdint.h>
 #include <vector>
-#include <thread>
-#include <chrono>
 
 class Serial {
 

@@ -150,8 +150,11 @@ void Flasher::write_bank(const std::vector<uint8_t>& data, unsigned int bank) {
         // calculate checksum
         uint16_t crc16 = this->crc16_xmodem(chunk);
 
+        // erase sector
+        this->serial->erase_sector(bank * 4 + i);
+
         // perform transfer
-        uint16_t checksum = this->serial->write_sector(i, chunk);
+        uint16_t checksum = this->serial->write_sector(bank * 4 + i, chunk);
 
         std::cout << std::hex << std::setw(2) << std::setfill('0') << (i+1) << " [";
         if(checksum  == crc16) {
@@ -209,7 +212,7 @@ void Flasher::verify_chip(const std::vector<uint8_t>& data) {
  * @throws std::runtime_error if the data does not match the chip.
  */
 void Flasher::verify_bank(const std::vector<uint8_t>& data, unsigned int bank) {
-    std::cout << "Verifying data:" << TEXTBLUE;
+    std::cout << "Verifying data: " << TEXTBLUE;
 
     // verify integrity
     auto chunk = std::vector<uint8_t>(1024 * 16);

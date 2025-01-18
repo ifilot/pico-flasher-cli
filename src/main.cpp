@@ -131,8 +131,8 @@ int main(int argc, char* argv[]) {
                     throw std::runtime_error("Error: Bank number must be between 0 and " + std::to_string(max_bank-1) + ".");
                 }
 
-                flasher.write_bank(data, bank);
-                flasher.verify_bank(data, bank);
+                flasher.write_bank(data, bank);     // write_bank automatically erases the bank
+                flasher.verify_bank(data, bank);    // verify that data has been written correctly
             } else {
                 if(data.size() > romsize) {
                     throw std::runtime_error("Error: File size too large.");
