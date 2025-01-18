@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <tclap/CmdLine.h>
+#include <cmath>
 
 #include "config.h"
 #include "flasher.h"
@@ -42,10 +43,12 @@ int main(int argc, char* argv[]) {
         TCLAP::SwitchArg arg_write("w","write","Write data to chip",false);
         TCLAP::SwitchArg arg_read("r","read","Read data from chip",false);
         TCLAP::SwitchArg arg_verify("v","verify","Verify data on chip",false);
+        TCLAP::ValueArg<unsigned int> arg_bank("b", "bank", "Bank number", false, 0, "bank");
         cmd.add(arg_erase);
         cmd.add(arg_write);
         cmd.add(arg_read);
         cmd.add(arg_verify);
+        cmd.add(arg_bank);
 
         cmd.parse(argc, argv);
 
@@ -128,10 +131,31 @@ int main(int argc, char* argv[]) {
         } else if(arg_verify.getValue()) {
             std::vector<uint8_t> data;
             flasher.read_file(arg_input_filename.getValue(), data);
-            if(data.size() != romsize) {
-                throw std::runtime_error("Error: File size does not match chip size.");
+
+            // choose whether to verify the whole chip or just a single bank
+            if(arg_bank.isSet()) {
+                unsigned int bank = arg_bank.getValue();
+                unsigned int max_bank = 8 * std::pow(2, (devid - 0xBFB5));
+
+                // check if data size is appropriate
+                if(data.size() != 1024 * 16) {
+                    throw std::runtime_error("Error: Data size must be 16KB");
+                }
+                
+                // check if bank number is appropriate
+                std::cout << "Checking ROM bank: " << bank << std::endl;
+                if(bank >= max_bank) {
+                    throw std::runtime_error("Error: Bank number must be between 0 and " + std::to_string(max_bank-1) + ".");
+                }
+                
+                flasher.verify_bank(data, bank);
+            } else {
+                if(data.size() != romsize) {
+                    throw std::runtime_error("Error: File size does not match chip size.");
+                }
+                
+                flasher.verify_chip(data);
             }
-            flasher.verify_chip(data);
         }
 
         std::cout << "All done!" << std::endl;

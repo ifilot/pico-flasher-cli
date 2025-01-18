@@ -168,6 +168,30 @@ void Flasher::verify_chip(const std::vector<uint8_t>& data) {
 }
 
 /**
+ * Verifies the data on a bank of the chip.
+ * @param data Data to verify on the chip.
+ * @param bank Bank to verify the data on.
+ * @throws std::runtime_error if the data does not match the chip.
+ */
+void Flasher::verify_bank(const std::vector<uint8_t>& data, unsigned int bank) {
+    std::cout << "Verifying data:" << TEXTBLUE;
+
+    // verify integrity
+    auto chunk = std::vector<uint8_t>(1024 * 16);
+    this->serial->read_bank(bank, chunk);
+
+    std::cout << "Bank " << std::dec << std::setw(2) << std::setfill('0') << bank << TEXTWHITE << " [";
+
+    if (std::equal(data.begin(), data.begin() + 1024 * 16, chunk.begin())) {
+        std::cout << TEXTGREEN << "PASS";
+    } else {
+        std::cout << TEXTRED << "FAIL";
+    }
+
+    std::cout << TEXTWHITE << "] " << std::endl;
+}
+
+/**
  * Reads data from a file.
  * @param filename Name of the file to read.
  * @param data Data read from the file.

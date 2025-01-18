@@ -75,6 +75,14 @@ public:
     void verify_chip(const std::vector<uint8_t>& data);
 
     /**
+     * Verifies the data on a bank of the chip.
+     * @param data Data to verify on the chip.
+     * @param bank Bank to verify the data on.
+     * @throws std::runtime_error if the data does not match the chip.
+     */
+    void verify_bank(const std::vector<uint8_t>& data, unsigned int bank);
+
+    /**
      * Reads data from a file.
      * @param filename Name of the file to read.
      * @param data Data read from the file.
